@@ -133,15 +133,15 @@ const LoginPage: React.FC = () => {
               <div className="grid grid-cols-1 gap-2 text-xs">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Admin:</span>
-                  <span className="text-gray-900">admin@demo.com / admin123</span>
+                  <span className="text-gray-900">admin@pms.com / password123</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Manager:</span>
-                  <span className="text-gray-900">manager@demo.com / manager123</span>
+                  <span className="text-gray-900">manager@pms.com / password123</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Tenant:</span>
-                  <span className="text-gray-900">tenant@demo.com / tenant123</span>
+                  <span className="text-gray-900">tenant1@pms.com / password123</span>
                 </div>
               </div>
             </div>
