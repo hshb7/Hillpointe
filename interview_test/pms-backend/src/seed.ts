@@ -16,10 +16,17 @@ async function seed() {
     await mongoose.connect(MONGODB_URI, { autoIndex: false });
     console.log('Connected to MongoDB');
 
-    // Drop the entire database to clear data AND indexes (the 2dsphere index
+    // Clear all collections and drop indexes (the 2dsphere index
     // on Property.address.coordinates is incompatible with the {lat,lng} schema)
-    await mongoose.connection.dropDatabase();
-    console.log('Dropped database');
+    await Promise.all([
+      User.deleteMany({}),
+      Property.collection.drop().catch(() => {}),
+      Tenant.deleteMany({}),
+      Maintenance.deleteMany({}),
+      Payment.deleteMany({}),
+      Document.deleteMany({}),
+    ]);
+    console.log('Cleared all collections');
 
     // ============ USERS ============
     const users = await User.create([
