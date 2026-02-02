@@ -21,8 +21,8 @@ dotenv.config();
 
 const app = express();
 
-// CORS — allow configured origin or localhost for dev
-const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3000';
+// CORS — allow any origin in production (same-domain), specific origin in dev
+const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 app.use(cors({ origin: CORS_ORIGIN }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -34,19 +34,35 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/proper
 let isConnected = false;
 const connectDB = async () => {
   if (isConnected) return;
-  await mongoose.connect(MONGODB_URI);
+  await mongoose.connect(MONGODB_URI, {
+    serverSelectionTimeoutMS: 10000,
+    connectTimeoutMS: 10000,
+  });
   isConnected = true;
   console.log('Connected to MongoDB');
 };
 
+// Health check — before DB middleware so it always responds
+app.get('/api/v1/health', (_req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    db: isConnected ? 'connected' : 'not connected',
+    env: {
+      hasMongoUri: !!process.env.MONGODB_URI,
+      hasSecretKey: !!process.env.SECRET_KEY,
+      isVercel: !!process.env.VERCEL,
+    },
+  });
+});
+
 // Ensure DB is connected before handling requests
-app.use(async (_req, _res, next) => {
+app.use(async (_req, res, next) => {
   try {
     await connectDB();
     next();
-  } catch (err) {
+  } catch (err: any) {
     console.error('MongoDB connection error:', err);
-    next(err);
+    res.status(500).json({ error: 'Database connection failed', message: err.message });
   }
 });
 
