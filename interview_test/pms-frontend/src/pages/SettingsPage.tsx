@@ -11,17 +11,11 @@ import {
   Database,
   Palette,
   CreditCard,
-  Key,
   Mail,
   Phone,
   Smartphone,
-  Clock,
-  DollarSign,
-  Lock,
   Eye,
   EyeOff,
-  Upload,
-  Download,
   Trash2,
   Plus,
   Edit,
@@ -29,15 +23,12 @@ import {
   Check,
   X,
   Camera,
-  Link,
-  Zap,
-  RefreshCw
+  Zap
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge } from '../components/ui';
 import { authApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { formatDateTime } from '../utils/formatters';
 
 interface SettingSection {
   id: string;
@@ -152,7 +143,7 @@ const SettingsPage: React.FC = () => {
     }
   }, [user]);
 
-  const [companySettings, setCompanySettings] = useState({
+  const [, ] = useState({
     name: 'PropertyPro Management',
     address: '123 Business Ave, Suite 100',
     city: 'New York',

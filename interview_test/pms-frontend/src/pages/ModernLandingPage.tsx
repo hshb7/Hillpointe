@@ -8,7 +8,6 @@ import {
   Wrench,
   CreditCard,
   BarChart3,
-  MessageSquare,
   Shield,
   Check,
   ArrowRight

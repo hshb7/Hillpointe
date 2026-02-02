@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Wrench, Plus, AlertTriangle, Clock, CheckCircle, XCircle, X } from 'lucide-react';
+import { Wrench, Plus, AlertTriangle, Clock, CheckCircle, X } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge, Table } from '../components/ui';
 import type { MaintenanceRequest, Property } from '../types';
 import { maintenanceApi, propertiesApi } from '../services/api';
-import { formatCurrency, formatDateTime, formatDate } from '../utils/formatters';
+import { formatCurrency, formatDate } from '../utils/formatters';
 
 const Maintenance: React.FC = () => {
   const [requests, setRequests] = useState<MaintenanceRequest[]>([]);

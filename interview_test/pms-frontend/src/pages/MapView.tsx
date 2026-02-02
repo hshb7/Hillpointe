@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Map, Building, Wrench, Calendar, Filter, Eye } from 'lucide-react';
+import { Map, Building, Wrench, Calendar, Eye } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge } from '../components/ui';
 import PropertyMap from '../components/PropertyMap';
 import type { Property, MaintenanceRequest, Appointment, MapMarker } from '../types';

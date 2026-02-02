@@ -1,21 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Building,
   MapPin,
   Bed,
   Bath,
   Ruler,
-  DollarSign,
   Plus,
   Search,
-  Filter,
   Eye,
   Edit,
   Trash2,
   X,
 } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Modal, Table } from '../components/ui';
+import { Card, CardContent, Button, Input, Badge, Modal, Table } from '../components/ui';
 import type { Property } from '../types';
 import { propertiesApi } from '../services/api';
 import { formatCurrency, formatAddress } from '../utils/formatters';
@@ -254,7 +251,7 @@ const Properties: React.FC = () => {
     {
       key: 'actions',
       label: 'Actions',
-      render: (value: any, row: Property) => (
+      render: (_value: any, row: Property) => (
         <div className="flex items-center space-x-2">
           <Button
             variant="ghost"

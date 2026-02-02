@@ -14,7 +14,6 @@ import {
   FileText,
   Phone,
   Search,
-  MoreHorizontal,
   Edit,
   Trash2,
   X,
@@ -213,7 +212,6 @@ const CalendarPage: React.FC = () => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
     const startDate = new Date(firstDay);
     startDate.setDate(startDate.getDate() - firstDay.getDay());
 
@@ -296,25 +294,6 @@ const CalendarPage: React.FC = () => {
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'urgent': return '#dc2626';
-      case 'high': return '#ea580c';
-      case 'medium': return '#d97706';
-      case 'low': return '#059669';
-      default: return '#6b7280';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'scheduled': return '#2563eb';
-      case 'confirmed': return '#059669';
-      case 'completed': return '#16a34a';
-      case 'cancelled': return '#dc2626';
-      default: return '#6b7280';
-    }
-  };
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case 'scheduled': return 'info';
@@ -385,7 +364,7 @@ const CalendarPage: React.FC = () => {
 
   const calendarDays = getCalendarDays();
   const weekDays = getWeekDays();
-  const timeSlots = getTimeSlots();
+  void getTimeSlots;
 
   return (
     <div style={{

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Plus, Search, Mail, Phone, Home, Calendar, X } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Table, Modal } from '../components/ui';
+import { Card, CardContent, Button, Input, Badge, Table, Modal } from '../components/ui';
 import type { Tenant, User, Property } from '../types';
 import { tenantsApi, propertiesApi } from '../services/api';
-import { formatCurrency, formatDateTime, formatDate } from '../utils/formatters';
+import { formatCurrency, formatDate } from '../utils/formatters';
 
 const Tenants: React.FC = () => {
   const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -144,7 +144,7 @@ const Tenants: React.FC = () => {
       key: 'name',
       label: 'Tenant',
       sortable: true,
-      render: (value: any, row: Tenant) => {
+      render: (_value: any, row: Tenant) => {
         const { user } = getTenantData(row);
         return user ? (
           <div className="flex items-center space-x-3">
@@ -164,7 +164,7 @@ const Tenants: React.FC = () => {
     {
       key: 'property',
       label: 'Property',
-      render: (value: any, row: Tenant) => {
+      render: (_value: any, row: Tenant) => {
         const { property } = getTenantData(row);
         return property ? (
           <div>

@@ -8,15 +8,11 @@ import {
   File,
   Folder,
   Search,
-  Filter,
   MoreVertical,
-  Eye,
   Trash2,
-  Edit,
   Share2,
   Grid,
   List,
-  Plus,
   X,
   Calendar
 } from 'lucide-react';
@@ -44,7 +40,7 @@ const DocumentsPage: React.FC = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadForm, setUploadForm] = useState({

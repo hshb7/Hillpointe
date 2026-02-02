@@ -7,7 +7,6 @@ import {
   Wrench,
   CreditCard,
   TrendingUp,
-  AlertTriangle,
   Calendar,
   DollarSign,
 } from 'lucide-react';

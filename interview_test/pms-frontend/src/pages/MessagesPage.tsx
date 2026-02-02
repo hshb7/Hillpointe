@@ -8,16 +8,12 @@ import {
   Video,
   Plus,
   Star,
-  Archive,
-  Trash2,
   Paperclip,
   Smile,
   Circle,
   Check,
   CheckCheck,
-  Filter,
-  Users,
-  Settings
+  Users
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge } from '../components/ui';
 
