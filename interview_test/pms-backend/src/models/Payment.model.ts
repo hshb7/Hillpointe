@@ -77,12 +77,12 @@ const paymentSchema = new Schema<IPayment>(
     },
     property: {
       type: Schema.Types.ObjectId,
-      ref: 'Properties',
+      ref: 'Property',
       required: true,
     },
     tenant: {
       type: Schema.Types.ObjectId,
-      ref: 'Tenants',
+      ref: 'Tenant',
       required: true,
     },
     type: {

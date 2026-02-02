@@ -85,7 +85,7 @@ const LandingPage: React.FC = () => {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link to="/register">
-                  <Button size="lg" rightIcon={<ArrowRight size={20} />}>
+                  <Button size="lg" iconRight={<ArrowRight size={20} />}>
                     Start Free Trial
                   </Button>
                 </Link>
@@ -207,7 +207,7 @@ const LandingPage: React.FC = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/register">
-                <Button variant="primary" size="lg" rightIcon={<ArrowRight size={20} />}>
+                <Button variant="primary" size="lg" iconRight={<ArrowRight size={20} />}>
                   Start Free Trial
                 </Button>
               </Link>

@@ -81,12 +81,12 @@ const tenantSchema = new Schema<ITenant>(
   {
     user: {
       type: Schema.Types.ObjectId,
-      ref: 'Users',
+      ref: 'User',
       required: true,
     },
     property: {
       type: Schema.Types.ObjectId,
-      ref: 'Properties',
+      ref: 'Property',
       required: true,
     },
     leaseStart: {

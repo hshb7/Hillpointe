@@ -14,7 +14,7 @@ const LoginPage: React.FC = () => {
   const { login, isLoading, error, isAuthenticated } = useAuth();
 
   if (isAuthenticated) {
-    return <Navigate to="/home" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -109,7 +109,7 @@ const LoginPage: React.FC = () => {
               <Button
                 type="submit"
                 fullWidth
-                isLoading={isLoading}
+                loading={isLoading}
                 disabled={!email || !password}
               >
                 Sign In

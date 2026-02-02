@@ -62,21 +62,21 @@ const maintenanceSchema = new Schema<IMaintenance>(
     },
     property: {
       type: Schema.Types.ObjectId,
-      ref: 'Properties',
+      ref: 'Property',
       required: true,
     },
     tenant: {
       type: Schema.Types.ObjectId,
-      ref: 'Tenants',
+      ref: 'Tenant',
     },
     reportedBy: {
       type: Schema.Types.ObjectId,
-      ref: 'Users',
+      ref: 'User',
       required: true,
     },
     assignedTo: {
       type: Schema.Types.ObjectId,
-      ref: 'Users',
+      ref: 'User',
     },
     category: {
       type: String,
@@ -119,7 +119,7 @@ const maintenanceSchema = new Schema<IMaintenance>(
     notes: [{
       author: {
         type: Schema.Types.ObjectId,
-        ref: 'Users',
+        ref: 'User',
       },
       content: String,
       timestamp: Date,
@@ -129,7 +129,7 @@ const maintenanceSchema = new Schema<IMaintenance>(
       timestamp: Date,
       user: {
         type: Schema.Types.ObjectId,
-        ref: 'Users',
+        ref: 'User',
       },
       comment: String,
     }],

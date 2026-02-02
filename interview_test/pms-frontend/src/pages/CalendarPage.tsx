@@ -56,13 +56,32 @@ const CalendarPage: React.FC = () => {
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [eventFilter, setEventFilter] = useState<'all' | 'inspection' | 'maintenance' | 'meeting' | 'showing'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [newEvent, setNewEvent] = useState({
+    title: '',
+    type: 'inspection' as CalendarEvent['type'],
+    description: '',
+    date: '',
+    startTime: '',
+    endTime: '',
+    propertyId: '',
+    priority: 'medium' as CalendarEvent['priority'],
+    location: '',
+    attendees: '',
+    notes: '',
+  });
+
+  const getDateStr = (offset: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    return d.toISOString().split('T')[0];
+  };
 
   const sampleEvents: CalendarEvent[] = [
     {
       id: '1',
       title: 'Property Inspection',
       description: 'Monthly routine inspection for Hillpointe Manor #12A',
-      date: '2024-01-24',
+      date: getDateStr(0),
       startTime: '10:00',
       endTime: '11:00',
       type: 'inspection',
@@ -79,7 +98,7 @@ const CalendarPage: React.FC = () => {
       id: '2',
       title: 'Maintenance Visit',
       description: 'Fix heating system noise in unit 12A',
-      date: '2024-01-24',
+      date: getDateStr(0),
       startTime: '14:00',
       endTime: '16:00',
       type: 'maintenance',
@@ -96,7 +115,7 @@ const CalendarPage: React.FC = () => {
       id: '3',
       title: 'Owner Meeting',
       description: 'Q4 financial review with property owner',
-      date: '2024-01-25',
+      date: getDateStr(1),
       startTime: '09:00',
       endTime: '10:30',
       type: 'meeting',
@@ -110,7 +129,7 @@ const CalendarPage: React.FC = () => {
       id: '4',
       title: 'Property Showing',
       description: 'Show apartment to potential tenant',
-      date: '2024-01-26',
+      date: getDateStr(2),
       startTime: '15:00',
       endTime: '16:00',
       type: 'showing',
@@ -126,7 +145,7 @@ const CalendarPage: React.FC = () => {
       id: '5',
       title: 'Lease Signing',
       description: 'New tenant lease signing appointment',
-      date: '2024-01-27',
+      date: getDateStr(3),
       startTime: '11:00',
       endTime: '12:00',
       type: 'appointment',
@@ -140,7 +159,7 @@ const CalendarPage: React.FC = () => {
     }
   ];
 
-  const [events] = useState<CalendarEvent[]>(sampleEvents);
+  const [events, setEvents] = useState<CalendarEvent[]>(sampleEvents);
 
   const getEventsForDate = (date: Date) => {
     const dateString = date.toISOString().split('T')[0];
@@ -297,6 +316,70 @@ const CalendarPage: React.FC = () => {
       default: return '#6b7280';
     }
   };
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'scheduled': return 'info';
+      case 'confirmed': return 'success';
+      case 'completed': return 'success';
+      case 'cancelled': return 'error';
+      default: return 'default';
+    }
+  };
+  const getPriorityBadgeVariant = (priority: string) => {
+    switch (priority) {
+      case 'low': return 'success';
+      case 'medium': return 'warning';
+      case 'high': return 'error';
+      case 'urgent': return 'error';
+      default: return 'default';
+    }
+  };
+
+  const propertyNameMap: Record<string, string> = {
+    'prop-1': 'Hillpointe Manor #12A',
+    'prop-2': 'Garden View Apartments #3B',
+    'prop-3': 'Sunset Plaza #7A',
+  };
+
+  const handleCreateEvent = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEvent.title || !newEvent.date || !newEvent.startTime || !newEvent.endTime) return;
+
+    const event: CalendarEvent = {
+      id: Date.now().toString(),
+      title: newEvent.title,
+      description: newEvent.description,
+      date: newEvent.date,
+      startTime: newEvent.startTime,
+      endTime: newEvent.endTime,
+      type: newEvent.type,
+      propertyId: newEvent.propertyId || undefined,
+      propertyName: newEvent.propertyId ? propertyNameMap[newEvent.propertyId] : undefined,
+      attendees: newEvent.attendees ? newEvent.attendees.split(',').map(a => a.trim()).filter(Boolean) : [],
+      location: newEvent.location || undefined,
+      status: 'scheduled',
+      priority: newEvent.priority,
+      createdBy: 'Manager',
+      notes: newEvent.notes || undefined,
+    };
+
+    setEvents(prev => [...prev, event]);
+    setSelectedDate(new Date(newEvent.date + 'T00:00:00'));
+    setShowCreateEvent(false);
+    setNewEvent({
+      title: '',
+      type: 'inspection',
+      description: '',
+      date: '',
+      startTime: '',
+      endTime: '',
+      propertyId: '',
+      priority: 'medium',
+      location: '',
+      attendees: '',
+      notes: '',
+    });
+  };
 
   const todayEvents = getEventsForDate(new Date());
   const selectedDateEvents = getEventsForDate(selectedDate);
@@ -333,7 +416,7 @@ const CalendarPage: React.FC = () => {
         >
           <Card>
             <CardHeader>
-              <CardTitle style={{ fontSize: '16px' }}>
+              <CardTitle className="text-base">
                 {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
               </CardTitle>
             </CardHeader>
@@ -413,17 +496,17 @@ const CalendarPage: React.FC = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle style={{ fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <CardTitle className="text-base flex items-center gap-2">
                 <Clock size={16} style={{ color: '#2d5a41' }} />
                 Today's Agenda
                 {todayEvents.length > 0 && (
-                  <Badge variant="info" style={{ marginLeft: '8px' }}>
+                  <Badge variant="info" className="ml-2">
                     {todayEvents.length}
                   </Badge>
                 )}
               </CardTitle>
             </CardHeader>
-            <CardContent style={{ maxHeight: '300px', overflowY: 'auto' }}>
+            <CardContent className="max-h-[300px] overflow-y-auto">
               {todayEvents.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {todayEvents.map((event) => (
@@ -449,13 +532,7 @@ const CalendarPage: React.FC = () => {
                         <span style={{ fontSize: '13px', fontWeight: '500', color: '#1f2937' }}>
                           {event.title}
                         </span>
-                        <Badge
-                          style={{
-                            backgroundColor: getStatusColor(event.status),
-                            color: 'white',
-                            fontSize: '10px'
-                          }}
-                        >
+                        <Badge variant={getStatusBadgeVariant(event.status)} className="text-[10px]">
                           {event.status}
                         </Badge>
                       </div>
@@ -481,7 +558,7 @@ const CalendarPage: React.FC = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle style={{ fontSize: '16px' }}>Quick Actions</CardTitle>
+              <CardTitle className="text-base">Quick Actions</CardTitle>
             </CardHeader>
             <CardContent>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -489,7 +566,7 @@ const CalendarPage: React.FC = () => {
                   size="sm"
                   variant="primary"
                   fullWidth
-                  leftIcon={<Plus size={16} />}
+                  iconLeft={<Plus size={16} />}
                   onClick={() => setShowCreateEvent(true)}
                 >
                   Schedule Event
@@ -498,7 +575,11 @@ const CalendarPage: React.FC = () => {
                   size="sm"
                   variant="outline"
                   fullWidth
-                  leftIcon={<Home size={16} />}
+                  iconLeft={<Home size={16} />}
+                  onClick={() => {
+                    setNewEvent(prev => ({ ...prev, type: 'inspection' }));
+                    setShowCreateEvent(true);
+                  }}
                 >
                   Schedule Inspection
                 </Button>
@@ -506,7 +587,11 @@ const CalendarPage: React.FC = () => {
                   size="sm"
                   variant="outline"
                   fullWidth
-                  leftIcon={<Wrench size={16} />}
+                  iconLeft={<Wrench size={16} />}
+                  onClick={() => {
+                    setNewEvent(prev => ({ ...prev, type: 'maintenance' }));
+                    setShowCreateEvent(true);
+                  }}
                 >
                   Book Maintenance
                 </Button>
@@ -514,7 +599,11 @@ const CalendarPage: React.FC = () => {
                   size="sm"
                   variant="outline"
                   fullWidth
-                  leftIcon={<Users size={16} />}
+                  iconLeft={<Users size={16} />}
+                  onClick={() => {
+                    setNewEvent(prev => ({ ...prev, type: 'meeting' }));
+                    setShowCreateEvent(true);
+                  }}
                 >
                   Schedule Meeting
                 </Button>
@@ -528,7 +617,7 @@ const CalendarPage: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           style={{ flex: 1 }}
         >
-          <Card style={{ height: 'calc(100vh - 200px)', display: 'flex', flexDirection: 'column' }}>
+          <Card className="h-[calc(100vh-200px)] flex flex-col">
             <CardHeader>
               <div style={{
                 display: 'flex',
@@ -658,7 +747,7 @@ const CalendarPage: React.FC = () => {
                   <Button
                     variant="primary"
                     size="sm"
-                    leftIcon={<Plus size={16} />}
+                    iconLeft={<Plus size={16} />}
                     onClick={() => setShowCreateEvent(true)}
                   >
                     New Event
@@ -667,7 +756,7 @@ const CalendarPage: React.FC = () => {
               </div>
             </CardHeader>
 
-            <CardContent style={{ flex: 1, padding: '20px', overflowY: 'auto' }}>
+            <CardContent className="flex-1 p-5 overflow-y-auto">
               {viewType === 'month' && (
                 <div style={{
                   display: 'grid',
@@ -1042,10 +1131,32 @@ const CalendarPage: React.FC = () => {
                   Event Details
                 </h3>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <Button size="sm" variant="outline" leftIcon={<Edit size={16} />}>
+                  <Button size="sm" variant="outline" iconLeft={<Edit size={16} />} onClick={() => {
+                    setNewEvent({
+                      title: selectedEvent.title,
+                      type: selectedEvent.type,
+                      description: selectedEvent.description,
+                      date: selectedEvent.date,
+                      startTime: selectedEvent.startTime,
+                      endTime: selectedEvent.endTime,
+                      propertyId: selectedEvent.propertyId || '',
+                      priority: selectedEvent.priority,
+                      location: selectedEvent.location || '',
+                      attendees: selectedEvent.attendees.join(', '),
+                      notes: selectedEvent.notes || '',
+                    });
+                    setEvents(prev => prev.filter(e => e.id !== selectedEvent.id));
+                    setShowEventModal(false);
+                    setSelectedEvent(null);
+                    setShowCreateEvent(true);
+                  }}>
                     Edit
                   </Button>
-                  <Button size="sm" variant="outline" leftIcon={<Trash2 size={16} />}>
+                  <Button size="sm" variant="outline" iconLeft={<Trash2 size={16} />} onClick={() => {
+                    setEvents(prev => prev.filter(e => e.id !== selectedEvent.id));
+                    setShowEventModal(false);
+                    setSelectedEvent(null);
+                  }}>
                     Delete
                   </Button>
                   <button
@@ -1083,20 +1194,10 @@ const CalendarPage: React.FC = () => {
                         {selectedEvent.title}
                       </h4>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                        <Badge
-                          style={{
-                            backgroundColor: getStatusColor(selectedEvent.status),
-                            color: 'white'
-                          }}
-                        >
+                        <Badge variant={getStatusBadgeVariant(selectedEvent.status)} className="text-[10px]">
                           {selectedEvent.status}
                         </Badge>
-                        <Badge
-                          style={{
-                            backgroundColor: getPriorityColor(selectedEvent.priority),
-                            color: 'white'
-                          }}
-                        >
+                        <Badge variant={getPriorityBadgeVariant(selectedEvent.priority)} className="text-[10px]">
                           {selectedEvent.priority} priority
                         </Badge>
                       </div>
@@ -1196,10 +1297,14 @@ const CalendarPage: React.FC = () => {
                 )}
 
                 <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                  <Button variant="primary" fullWidth leftIcon={<CheckCircle size={16} />}>
+                  <Button variant="primary" fullWidth iconLeft={<CheckCircle size={16} />} onClick={() => {
+                    setEvents(prev => prev.map(e => e.id === selectedEvent.id ? { ...e, status: 'completed' as const } : e));
+                    setShowEventModal(false);
+                    setSelectedEvent(null);
+                  }}>
                     Mark Complete
                   </Button>
-                  <Button variant="outline" fullWidth leftIcon={<Phone size={16} />}>
+                  <Button variant="outline" fullWidth iconLeft={<Phone size={16} />} onClick={() => alert(`Attendees: ${selectedEvent.attendees.join(', ')}`)}>
                     Contact Attendees
                   </Button>
                 </div>
@@ -1273,7 +1378,7 @@ const CalendarPage: React.FC = () => {
                 </button>
               </div>
 
-              <form style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <form onSubmit={handleCreateEvent} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
                     <label style={{
@@ -1288,6 +1393,9 @@ const CalendarPage: React.FC = () => {
                     <input
                       type="text"
                       placeholder="Enter event title..."
+                      value={newEvent.title}
+                      onChange={(e) => setNewEvent(prev => ({ ...prev, title: e.target.value }))}
+                      required
                       style={{
                         width: '100%',
                         padding: '8px 12px',
@@ -1309,6 +1417,8 @@ const CalendarPage: React.FC = () => {
                       Event Type
                     </label>
                     <select
+                      value={newEvent.type}
+                      onChange={(e) => setNewEvent(prev => ({ ...prev, type: e.target.value as CalendarEvent['type'] }))}
                       style={{
                         width: '100%',
                         padding: '8px 12px',
@@ -1341,6 +1451,8 @@ const CalendarPage: React.FC = () => {
                   <textarea
                     placeholder="Event description..."
                     rows={3}
+                    value={newEvent.description}
+                    onChange={(e) => setNewEvent(prev => ({ ...prev, description: e.target.value }))}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -1366,6 +1478,9 @@ const CalendarPage: React.FC = () => {
                     </label>
                     <input
                       type="date"
+                      value={newEvent.date}
+                      onChange={(e) => setNewEvent(prev => ({ ...prev, date: e.target.value }))}
+                      required
                       style={{
                         width: '100%',
                         padding: '8px 12px',
@@ -1388,6 +1503,9 @@ const CalendarPage: React.FC = () => {
                     </label>
                     <input
                       type="time"
+                      value={newEvent.startTime}
+                      onChange={(e) => setNewEvent(prev => ({ ...prev, startTime: e.target.value }))}
+                      required
                       style={{
                         width: '100%',
                         padding: '8px 12px',
@@ -1410,6 +1528,9 @@ const CalendarPage: React.FC = () => {
                     </label>
                     <input
                       type="time"
+                      value={newEvent.endTime}
+                      onChange={(e) => setNewEvent(prev => ({ ...prev, endTime: e.target.value }))}
+                      required
                       style={{
                         width: '100%',
                         padding: '8px 12px',
@@ -1434,6 +1555,8 @@ const CalendarPage: React.FC = () => {
                       Property (Optional)
                     </label>
                     <select
+                      value={newEvent.propertyId}
+                      onChange={(e) => setNewEvent(prev => ({ ...prev, propertyId: e.target.value }))}
                       style={{
                         width: '100%',
                         padding: '8px 12px',
@@ -1460,6 +1583,8 @@ const CalendarPage: React.FC = () => {
                       Priority
                     </label>
                     <select
+                      value={newEvent.priority}
+                      onChange={(e) => setNewEvent(prev => ({ ...prev, priority: e.target.value as CalendarEvent['priority'] }))}
                       style={{
                         width: '100%',
                         padding: '8px 12px',
@@ -1490,6 +1615,8 @@ const CalendarPage: React.FC = () => {
                   <input
                     type="text"
                     placeholder="Event location..."
+                    value={newEvent.location}
+                    onChange={(e) => setNewEvent(prev => ({ ...prev, location: e.target.value }))}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -1514,6 +1641,8 @@ const CalendarPage: React.FC = () => {
                   <input
                     type="text"
                     placeholder="Add attendees (comma separated)..."
+                    value={newEvent.attendees}
+                    onChange={(e) => setNewEvent(prev => ({ ...prev, attendees: e.target.value }))}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -1538,6 +1667,8 @@ const CalendarPage: React.FC = () => {
                   <textarea
                     placeholder="Additional notes..."
                     rows={2}
+                    value={newEvent.notes}
+                    onChange={(e) => setNewEvent(prev => ({ ...prev, notes: e.target.value }))}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -1563,7 +1694,7 @@ const CalendarPage: React.FC = () => {
                     type="submit"
                     variant="primary"
                     fullWidth
-                    leftIcon={<Plus size={16} />}
+                    iconLeft={<Plus size={16} />}
                   >
                     Create Event
                   </Button>

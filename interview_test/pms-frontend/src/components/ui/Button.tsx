@@ -2,7 +2,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'onDrag' | 'onDragStart' | 'onDragEnd' | 'onAnimationStart' | 'onAnimationEnd'> {
+
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'success';
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   loading?: boolean;
@@ -30,13 +31,16 @@ const Button: React.FC<ButtonProps> = ({
     secondary: 'bg-stone-400 hover:bg-stone-500 text-white focus:ring-stone-400',
     outline: 'border-2 border-emerald-800 text-emerald-800 hover:bg-emerald-800 hover:text-white focus:ring-emerald-500',
     ghost: 'text-emerald-800 hover:bg-emerald-50 focus:ring-emerald-500',
-    danger: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500'
+    danger: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500',
+    success: 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500'
   };
 
   const sizes = {
+    xs: 'px-2 py-1 text-xs',
     sm: 'px-3 py-1.5 text-sm',
     md: 'px-4 py-2 text-base',
-    lg: 'px-6 py-3 text-lg'
+    lg: 'px-6 py-3 text-lg',
+    xl: 'px-8 py-4 text-xl'
   };
 
   const classes = clsx(

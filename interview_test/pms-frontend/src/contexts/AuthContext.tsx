@@ -88,8 +88,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         try {
           dispatch({ type: 'AUTH_START' });
           const response = await authApi.getCurrentUser();
-          if (response.success && response.data) {
-            dispatch({ type: 'AUTH_SUCCESS', payload: response.data.userData });
+          if ((response as any).ok && (response as any).currentAccount) {
+            dispatch({ type: 'AUTH_SUCCESS', payload: (response as any).currentAccount});
           } else {
             localStorage.removeItem('token');
             dispatch({ type: 'AUTH_FAILURE', payload: 'Invalid token' });
@@ -109,13 +109,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string): Promise<void> => {
     try {
       dispatch({ type: 'AUTH_START' });
-      const response = await authApi.login(email, password);
+      const response: any =await authApi.login(email, password);
 
-      if (response.success && response.data) {
-        localStorage.setItem('token', response.data.authToken);
-        dispatch({ type: 'AUTH_SUCCESS', payload: response.data.userData });
+      if (response.ok && response.accessToken) {
+        localStorage.setItem('token', response.accessToken);
+        dispatch({ type: 'AUTH_SUCCESS', payload: response.account });
       } else {
-        dispatch({ type: 'AUTH_FAILURE', payload: response.message || 'Login failed' });
+        dispatch({ type: 'AUTH_FAILURE', payload: response.msg || 'Login failed' });
       }
     } catch (error: any) {
       dispatch({
@@ -131,7 +131,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await authApi.register(userData);
 
       if (response.success) {
-        await login(userData.email!, userData.password);
+        await login(userData.emailAddress!, userData.password);
       } else {
         dispatch({ type: 'AUTH_FAILURE', payload: response.message || 'Registration failed' });
       }

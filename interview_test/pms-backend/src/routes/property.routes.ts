@@ -10,22 +10,22 @@ router.get('/', async (req, res) => {
     const { status, type, minPrice, maxPrice, bedrooms, bathrooms, city } = req.query;
     const filter: any = {};
 
-    if (status) filter.propertyStatus = status;
-    if (type) filter.propertyType = type;
-    if (city) filter['location.city'] = new RegExp(city as string, 'i');
-    if (bedrooms) filter['specs.beds'] = Number(bedrooms);
-    if (bathrooms) filter['specs.baths'] = Number(bathrooms);
+    if (status) filter.status = status;
+    if (type) filter.type = type;
+    if (city) filter['address.city'] = new RegExp(city as string, 'i');
+    if (bedrooms) filter['details.bedrooms'] = Number(bedrooms);
+    if (bathrooms) filter['details.bathrooms'] = Number(bathrooms);
 
     if (minPrice || maxPrice) {
-      filter['pricing.rent'] = {};
-      if (minPrice) filter['pricing.rent'].$gte = Number(minPrice);
-      if (maxPrice) filter['pricing.rent'].$lte = Number(maxPrice);
+      filter['financials.monthlyRent'] = {};
+      if (minPrice) filter['financials.monthlyRent'].$gte = Number(minPrice);
+      if (maxPrice) filter['financials.monthlyRent'].$lte = Number(maxPrice);
     }
 
     const properties = await Property.find(filter)
-      .populate('propertyOwner', 'firstName lastName email')
-      .populate('propertyManager', 'firstName lastName email')
-      .sort({ created: -1 });
+      .populate('owner', 'firstName lastName email')
+      .populate('manager', 'firstName lastName email')
+      .sort({ createdAt: -1 });
 
     res.json({ listings: properties, count: properties.length, success: true });
   } catch (error) {
@@ -37,10 +37,10 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const property = await Property.findById(req.params.id)
-      .populate('propertyOwner', 'firstName lastName email phoneNumber')
-      .populate('propertyManager', 'firstName lastName email phoneNumber')
-      .populate('currentLease.resident')
-      .populate('attachments');
+      .populate('owner', 'firstName lastName email phoneNumber')
+      .populate('manager', 'firstName lastName email phoneNumber')
+      .populate('lease.tenant')
+      .populate('documents');
 
     if (!property) {
       return res.status(404).json({ err: 'Listing not found', code: 404 });

@@ -1,8 +1,8 @@
-export const formatCurrency = (amount: string, currency: string = 'USD'): string => {
+export const formatCurrency = (amount: number, currency: string = 'USD'): string => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: currency,
-  }).format(parseInt(amount));
+  }).format(amount);
 };
 
 export const formatDate = (date: string | Date): string => {
@@ -73,8 +73,8 @@ export const formatFileSize = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
-export const formatPercentage = (value: string, decimals: number = 1): string => {
-  return `${parseFloat(value).toFixed(decimals)}`;
+export const formatPercentage = (value: number, decimals: number = 1): string => {
+  return `${value.toFixed(decimals)}%`;
 };
 
 export const capitalize = (str: string): string => {

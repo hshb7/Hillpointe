@@ -4,8 +4,35 @@ export interface IDocument extends Document {
   documentId: string;
   name: string;
   type: 'lease' | 'application' | 'inspection' | 'insurance' | 'tax' | 'contract' | 'invoice' | 'receipt' | 'report' | 'other';
-
+  category: 'legal' | 'financial' | 'maintenance' | 'tenant' | 'property' | 'administrative';
+  property?: mongoose.Types.ObjectId;
+  tenant?: mongoose.Types.ObjectId;
+  uploadedBy: mongoose.Types.ObjectId;
+  fileUrl: string;
+  fileSize: number;
+  mimeType: string;
+  description?: string;
+  tags: string[];
+  version: number;
+  previousVersions: Array<{
+    version: number;
+    fileUrl: string;
+    uploadDate: Date;
+    uploadedBy: mongoose.Types.ObjectId;
+  }>;
+  expiryDate?: Date;
+  reminderDate?: Date;
+  isConfidential: boolean;
+  accessControl: Array<{
+    user: mongoose.Types.ObjectId;
+    permission: 'view' | 'edit' | 'delete';
     accessCount: number;
+  }>;
+  signatures: Array<{
+    user: mongoose.Types.ObjectId;
+    signedDate: Date;
+    ipAddress: string;
+    signature: string;
   }>;
   audit: Array<{
     action: 'uploaded' | 'viewed' | 'downloaded' | 'edited' | 'deleted' | 'shared';
@@ -106,6 +133,14 @@ const documentSchema = new Schema<IDocument>(
       signature: String,
     }],
 
+    audit: [{
+      action: {
+        type: String,
+        enum: ['uploaded', 'viewed', 'downloaded', 'edited', 'deleted', 'shared'],
+      },
+      user: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
       },
       timestamp: Date,
       details: String,

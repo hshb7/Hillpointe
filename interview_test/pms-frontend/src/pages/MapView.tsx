@@ -4,12 +4,28 @@ import { Map, Building, Wrench, Calendar, Filter, Eye } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge } from '../components/ui';
 import PropertyMap from '../components/PropertyMap';
 import type { Property, MaintenanceRequest, Appointment, MapMarker } from '../types';
-import { sampleProperties, sampleMaintenanceRequests, sampleAppointments } from '../data/sampleData';
+import { propertiesApi, maintenanceApi } from '../services/api';
 
 const MapView: React.FC = () => {
-  const [properties] = useState<Property[]>(sampleProperties);
-  const [maintenanceRequests] = useState<MaintenanceRequest[]>(sampleMaintenanceRequests);
-  const [appointments] = useState<Appointment[]>(sampleAppointments);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [maintenanceRequests, setMaintenanceRequests] = useState<MaintenanceRequest[]>([]);
+  const [appointments] = useState<Appointment[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [propRes, maintRes] = await Promise.all([
+          propertiesApi.getAll(),
+          maintenanceApi.getAll(),
+        ]);
+        setProperties(propRes.data);
+        setMaintenanceRequests(maintRes.data);
+      } catch (err) {
+        console.error('Failed to fetch map data:', err);
+      }
+    };
+    fetchData();
+  }, []);
   const [selectedMarker, setSelectedMarker] = useState<MapMarker | null>(null);
   const [showProperties, setShowProperties] = useState(true);
   const [showMaintenance, setShowMaintenance] = useState(true);
@@ -64,7 +80,7 @@ const MapView: React.FC = () => {
   };
 
   return (
-    <Layout title="Map View">
+    <div title="Map View">
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
@@ -280,7 +296,7 @@ const MapView: React.FC = () => {
                         </div>
                       )}
 
-                      <Button variant="outline" size="sm" fullWidth className="mt-3">
+                      <Button variant="outline" size="sm" fullWidth className="mt-3" onClick={() => alert(`${selectedMarker.title}\nType: ${selectedMarker.type}\nStatus: ${selectedMarker.data.status}`)}>
                         <Eye size={14} className="mr-1" />
                         View Details
                       </Button>
@@ -292,7 +308,7 @@ const MapView: React.FC = () => {
           </div>
         </div>
       </div>
-    </Layout>
+    </div>
   );
 };
 

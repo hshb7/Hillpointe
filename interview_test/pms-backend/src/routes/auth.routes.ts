@@ -118,7 +118,7 @@ router.get('/current-user', authenticateToken, async (req: AuthRequest, res) => 
   try {
     const user = await User.findById(req.userId)
       .select('-password')
-      .populate('ownedProperties');
+      .populate('properties');
 
     if (!user) {
       return res.status(404).json({ err: 'Account not found', code: 404 });

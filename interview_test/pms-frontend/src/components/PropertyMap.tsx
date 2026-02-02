@@ -3,7 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { Property, MaintenanceRequest, Appointment, MapMarker } from '../types';
 
-let DefaultIcon = L.divIcon({
+const DefaultIcon = L.divIcon({
   html: `<div class="custom-marker">📍</div>`,
   iconSize: [25, 41],
   iconAnchor: [12, 41],
@@ -111,6 +111,9 @@ const PropertyMap: React.FC<PropertyMapProps> = ({
 
     markersRef.current.clearLayers();
 
+    const map = mapRef.current;
+    const markersGroup = markersRef.current;
+
     const markers: MapMarker[] = [];
 
     properties.forEach((property) => {
@@ -152,7 +155,7 @@ const PropertyMap: React.FC<PropertyMapProps> = ({
             </div>
           </div>
         `)
-        .addTo(markersRef.current);
+        .addTo(markersGroup);
 
       leafletMarker.on('click', () => {
         onMarkerClick?.(marker);
@@ -201,7 +204,7 @@ const PropertyMap: React.FC<PropertyMapProps> = ({
             </div>
           </div>
         `)
-        .addTo(markersRef.current);
+        .addTo(markersGroup);
 
       leafletMarker.on('click', () => {
         onMarkerClick?.(marker);
@@ -252,7 +255,7 @@ const PropertyMap: React.FC<PropertyMapProps> = ({
             </div>
           </div>
         `)
-        .addTo(markersRef.current);
+        .addTo(markersGroup);
 
       leafletMarker.on('click', () => {
         onMarkerClick?.(marker);
@@ -260,8 +263,8 @@ const PropertyMap: React.FC<PropertyMapProps> = ({
     });
 
     if (markers.length > 0) {
-      const group = new L.featureGroup(markersRef.current.getLayers());
-      mapRef.current.fitBounds(group.getBounds().pad(0.1));
+      const group = L.featureGroup(markersGroup.getLayers());
+      map.fitBounds(group.getBounds().pad(0.1));
     }
 
   }, [properties, maintenanceRequests, appointments, onMarkerClick]);

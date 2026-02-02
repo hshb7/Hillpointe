@@ -6,7 +6,6 @@ import {
   Search,
   Phone,
   Video,
-  MoreHorizontal,
   Plus,
   Star,
   Archive,
@@ -170,9 +169,10 @@ const MessagesPage: React.FC = () => {
   ];
 
   const sampleMessages: Message[] = [
+    // Conversation with Sarah Johnson (tenant-1)
     {
       id: 'msg-1a',
-      content: 'Hello Mike! How are things going with the property maintenance?',
+      content: 'Hello Sarah! How are things going with the property?',
       senderId: currentUserId,
       receiverId: 'tenant-1',
       timestamp: '2024-01-24T09:00:00Z',
@@ -203,6 +203,123 @@ const MessagesPage: React.FC = () => {
       senderId: currentUserId,
       receiverId: 'tenant-1',
       timestamp: '2024-01-24T10:35:00Z',
+      read: true,
+      messageType: 'text'
+    },
+    // Conversation with Mike Thompson (contractor-1)
+    {
+      id: 'msg-2a',
+      content: 'Hi Mike, we have a plumbing issue in unit 8B. Are you available this week?',
+      senderId: currentUserId,
+      receiverId: 'contractor-1',
+      timestamp: '2024-01-23T14:00:00Z',
+      read: true,
+      messageType: 'text'
+    },
+    {
+      id: 'msg-2b',
+      content: 'Sure, I can come by tomorrow morning. What\'s the issue?',
+      senderId: 'contractor-1',
+      receiverId: currentUserId,
+      timestamp: '2024-01-23T14:30:00Z',
+      read: true,
+      messageType: 'text'
+    },
+    {
+      id: 'msg-2c',
+      content: 'Leaking pipe under the kitchen sink. The tenant reported it yesterday.',
+      senderId: currentUserId,
+      receiverId: 'contractor-1',
+      timestamp: '2024-01-23T14:35:00Z',
+      read: true,
+      messageType: 'text'
+    },
+    {
+      id: 'msg-2d',
+      content: 'Maintenance completed for unit 8B. Invoice attached.',
+      senderId: 'contractor-1',
+      receiverId: currentUserId,
+      timestamp: '2024-01-24T08:45:00Z',
+      read: true,
+      messageType: 'file',
+      attachment: {
+        name: 'invoice-8B-plumbing.pdf',
+        url: '/documents/invoice-8B-plumbing.pdf',
+        type: 'application/pdf',
+        size: 245000
+      }
+    },
+    // Conversation with Robert Chen (owner-1)
+    {
+      id: 'msg-3a',
+      content: 'Good afternoon Robert. The quarterly inspection for Garden View Apartments is complete.',
+      senderId: currentUserId,
+      receiverId: 'owner-1',
+      timestamp: '2024-01-22T10:00:00Z',
+      read: true,
+      messageType: 'text'
+    },
+    {
+      id: 'msg-3b',
+      content: 'Thanks for the update. How did everything look?',
+      senderId: 'owner-1',
+      receiverId: currentUserId,
+      timestamp: '2024-01-22T11:30:00Z',
+      read: true,
+      messageType: 'text'
+    },
+    {
+      id: 'msg-3c',
+      content: 'All units are in good condition. Minor touch-up painting needed in the common areas.',
+      senderId: currentUserId,
+      receiverId: 'owner-1',
+      timestamp: '2024-01-22T11:45:00Z',
+      read: true,
+      messageType: 'text'
+    },
+    {
+      id: 'msg-3d',
+      content: 'Please send me the Q4 financial report when you have a chance.',
+      senderId: 'owner-1',
+      receiverId: currentUserId,
+      timestamp: '2024-01-23T16:20:00Z',
+      read: false,
+      messageType: 'text'
+    },
+    // Conversation with Jennifer Wilson (tenant-2)
+    {
+      id: 'msg-4a',
+      content: 'Hi Jennifer, just following up on the maintenance request you submitted for your dishwasher.',
+      senderId: currentUserId,
+      receiverId: 'tenant-2',
+      timestamp: '2024-01-22T09:00:00Z',
+      read: true,
+      messageType: 'text'
+    },
+    {
+      id: 'msg-4b',
+      content: 'Oh great! When can someone come take a look at it?',
+      senderId: 'tenant-2',
+      receiverId: currentUserId,
+      timestamp: '2024-01-22T09:30:00Z',
+      read: true,
+      messageType: 'text'
+    },
+    {
+      id: 'msg-4c',
+      content: 'Our contractor Mike will be there tomorrow between 10-12 AM. Does that work?',
+      senderId: currentUserId,
+      receiverId: 'tenant-2',
+      timestamp: '2024-01-22T10:00:00Z',
+      read: true,
+      messageType: 'text'
+    },
+    {
+      id: 'msg-4d',
+      content: 'Thank you for the quick response! The issue is resolved.',
+      senderId: 'tenant-2',
+      receiverId: currentUserId,
+      timestamp: '2024-01-23T12:10:00Z',
       read: true,
       messageType: 'text'
     }
@@ -239,8 +356,8 @@ const MessagesPage: React.FC = () => {
     }
   ];
 
-  const [conversations] = useState<Conversation[]>(sampleConversations);
-  const [messages] = useState<Message[]>(sampleMessages);
+  const [conversations, setConversations] = useState<Conversation[]>(sampleConversations);
+  const [messages, setMessages] = useState<Message[]>(sampleMessages);
   const [contacts] = useState<Contact[]>(sampleContacts);
 
   const selectedConversation = conversations.find(c => c.id === selectedConversationId);
@@ -251,8 +368,8 @@ const MessagesPage: React.FC = () => {
 
   const filteredConversations = conversations.filter(conversation => {
     const matchesSearch = conversation.participantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         conversation.lastMessage.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (conversation.propertyName?.toLowerCase().includes(searchTerm.toLowerCase()));
+      conversation.lastMessage.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (conversation.propertyName?.toLowerCase().includes(searchTerm.toLowerCase()));
 
     switch (filterType) {
       case 'unread':
@@ -269,8 +386,60 @@ const MessagesPage: React.FC = () => {
   const handleSendMessage = () => {
     if (!messageText.trim() || !selectedConversation) return;
 
-    console.log('Sending message:', messageText);
+    const newMsg: Message = {
+      id: `msg-${Date.now()}`,
+      content: messageText.trim(),
+      senderId: currentUserId,
+      receiverId: selectedConversation.participantId,
+      timestamp: new Date().toISOString(),
+      read: true,
+      messageType: 'text'
+    };
+
+    setMessages(prev => [...prev, newMsg]);
+    setConversations(prev => prev.map(c =>
+      c.id === selectedConversation.id
+        ? { ...c, lastMessage: newMsg }
+        : c
+    ));
     setMessageText('');
+  };
+
+  const handleStartConversation = (contact: Contact) => {
+    const existingConv = conversations.find(c => c.participantId === contact.id);
+    if (existingConv) {
+      setSelectedConversationId(existingConv.id);
+      setShowNewMessage(false);
+      setShowContacts(false);
+      return;
+    }
+
+    const newConvId = `conv-${Date.now()}`;
+    const newConv: Conversation = {
+      id: newConvId,
+      participantId: contact.id,
+      participantName: contact.name,
+      participantRole: contact.role,
+      propertyId: contact.propertyId,
+      propertyName: contact.propertyName,
+      isOnline: contact.isOnline,
+      unreadCount: 0,
+      isPinned: false,
+      lastMessage: {
+        id: `msg-sys-${Date.now()}`,
+        content: 'Conversation started',
+        senderId: currentUserId,
+        receiverId: contact.id,
+        timestamp: new Date().toISOString(),
+        read: true,
+        messageType: 'system'
+      }
+    };
+
+    setConversations(prev => [newConv, ...prev]);
+    setSelectedConversationId(newConvId);
+    setShowNewMessage(false);
+    setShowContacts(false);
   };
 
   const formatTime = (timestamp: string) => {
@@ -309,7 +478,7 @@ const MessagesPage: React.FC = () => {
       case 'tenant': return 'info';
       case 'owner': return 'success';
       case 'contractor': return 'warning';
-      case 'manager': return 'primary';
+      case 'manager': return 'info';
       default: return 'default';
     }
   };
@@ -350,7 +519,7 @@ const MessagesPage: React.FC = () => {
           animate={{ opacity: 1, x: 0 }}
           style={{ width: '400px', display: 'flex', flexDirection: 'column' }}
         >
-          <Card style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <Card className="h-full flex flex-col">
             <CardHeader>
               <div style={{
                 display: 'flex',
@@ -358,11 +527,11 @@ const MessagesPage: React.FC = () => {
                 justifyContent: 'space-between',
                 marginBottom: '16px'
               }}>
-                <CardTitle style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CardTitle className="flex items-center gap-2">
                   <MessageSquare size={20} style={{ color: '#2d5a41' }} />
                   Conversations
                   {totalUnread > 0 && (
-                    <Badge variant="error" style={{ marginLeft: '8px' }}>
+                    <Badge variant="error" className="ml-2">
                       {totalUnread}
                     </Badge>
                   )}
@@ -372,17 +541,17 @@ const MessagesPage: React.FC = () => {
                     size="sm"
                     variant="outline"
                     onClick={() => setShowContacts(!showContacts)}
-                    leftIcon={<Users size={16} />}
+                    title="Contacts"
                   >
-                    Contacts
+                    <Users size={16} />
                   </Button>
                   <Button
                     size="sm"
                     variant="primary"
                     onClick={() => setShowNewMessage(!showNewMessage)}
-                    leftIcon={<Plus size={16} />}
+                    title="New Message"
                   >
-                    New
+                    <Plus size={16} />
                   </Button>
                 </div>
               </div>
@@ -460,11 +629,7 @@ const MessagesPage: React.FC = () => {
               </div>
             </CardHeader>
 
-            <CardContent style={{
-              flex: 1,
-              padding: '0',
-              overflowY: 'auto'
-            }}>
+            <CardContent className="flex-1 p-0 overflow-y-auto">
               <div style={{ padding: '0 16px' }}>
                 {filteredConversations.map((conversation, index) => (
                   <motion.div
@@ -560,7 +725,7 @@ const MessagesPage: React.FC = () => {
                             </span>
                             <Badge
                               variant={getRoleBadgeVariant(conversation.participantRole)}
-                              style={{ fontSize: '10px' }}
+                              className="text-[10px]"
                             >
                               {conversation.participantRole}
                             </Badge>
@@ -645,8 +810,8 @@ const MessagesPage: React.FC = () => {
           style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
         >
           {selectedConversation ? (
-            <Card style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-              <CardHeader style={{ borderBottom: '1px solid #e5e7eb' }}>
+            <Card className="h-full flex flex-col">
+              <CardHeader className='border-b border-gray-200'>
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -704,31 +869,22 @@ const MessagesPage: React.FC = () => {
                         color: '#6b7280'
                       }}>
                         {selectedConversation.isOnline ? 'Online' :
-                         `Last seen ${formatTime(selectedConversation.lastSeen || '')}`}
+                          `Last seen ${formatTime(selectedConversation.lastSeen || '')}`}
                       </p>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    <Button size="sm" variant="outline" leftIcon={<Phone size={16} />}>
+                    <Button size="sm" variant="outline" iconLeft={<Phone size={16} />} onClick={() => window.open(`tel:+1234567890`, '_self')}>
                       Call
                     </Button>
-                    <Button size="sm" variant="outline" leftIcon={<Video size={16} />}>
+                    <Button size="sm" variant="outline" iconLeft={<Video size={16} />} onClick={() => window.open(`tel:+1234567890`, '_self')}>
                       Video
-                    </Button>
-                    <Button size="sm" variant="outline" leftIcon={<MoreHorizontal size={16} />}>
-                      More
                     </Button>
                   </div>
                 </div>
               </CardHeader>
 
-              <CardContent style={{
-                flex: 1,
-                padding: '20px',
-                overflowY: 'auto',
-                display: 'flex',
-                flexDirection: 'column'
-              }}>
+              <CardContent className="flex-1 p-4 overflow-y-auto flex flex-col">
                 <div style={{ flex: 1 }}>
                   {conversationMessages.map((message, index) => {
                     const isOwnMessage = message.senderId === currentUserId;
@@ -849,6 +1005,7 @@ const MessagesPage: React.FC = () => {
                   gap: '12px'
                 }}>
                   <button
+                    onClick={() => { setMessageText(prev => prev + ' [Attachment] '); }}
                     style={{
                       padding: '8px',
                       border: 'none',
@@ -898,6 +1055,7 @@ const MessagesPage: React.FC = () => {
                   </div>
 
                   <button
+                    onClick={() => { setMessageText(prev => prev + '👍'); }}
                     style={{
                       padding: '8px',
                       border: 'none',
@@ -930,12 +1088,7 @@ const MessagesPage: React.FC = () => {
               </div>
             </Card>
           ) : (
-            <Card style={{
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
+            <Card className="h-full flex items-center justify-center">
               <div style={{ textAlign: 'center', color: '#6b7280' }}>
                 <MessageSquare size={64} style={{ margin: '0 auto 16px', opacity: 0.3 }} />
                 <h3 style={{ marginBottom: '8px', fontSize: '18px' }}>Select a conversation</h3>
@@ -1036,6 +1189,7 @@ const MessagesPage: React.FC = () => {
                   {contacts.map((contact) => (
                     <div
                       key={contact.id}
+                      onClick={() => handleStartConversation(contact)}
                       style={{
                         padding: '12px',
                         borderRadius: '8px',
@@ -1092,9 +1246,6 @@ const MessagesPage: React.FC = () => {
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                 <Button variant="outline" onClick={() => setShowNewMessage(false)}>
                   Cancel
-                </Button>
-                <Button variant="primary">
-                  Start Conversation
                 </Button>
               </div>
             </motion.div>
@@ -1229,10 +1380,10 @@ const MessagesPage: React.FC = () => {
                         )}
                       </div>
                       <div style={{ display: 'flex', gap: '8px' }}>
-                        <Button size="sm" variant="outline" leftIcon={<MessageSquare size={16} />}>
+                        <Button size="sm" variant="outline" iconLeft={<MessageSquare size={16} />} onClick={() => handleStartConversation(contact)}>
                           Message
                         </Button>
-                        <Button size="sm" variant="outline" leftIcon={<Phone size={16} />}>
+                        <Button size="sm" variant="outline" iconLeft={<Phone size={16} />} onClick={() => window.open(`tel:${contact.phone}`, '_self')}>
                           Call
                         </Button>
                       </div>

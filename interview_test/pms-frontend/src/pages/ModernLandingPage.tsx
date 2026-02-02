@@ -5,7 +5,7 @@ import {
   Home,
   Users,
   MapPin,
-  Tool,
+  Wrench,
   CreditCard,
   BarChart3,
   MessageSquare,
@@ -21,7 +21,7 @@ const ModernLandingPage: React.FC = () => {
     { icon: Home, title: 'Property Management', desc: 'Manage all your properties in one place' },
     { icon: Users, title: 'Tenant Portal', desc: 'Streamline tenant communication' },
     { icon: MapPin, title: 'Interactive Maps', desc: 'Visualize property locations' },
-    { icon: Tool, title: 'Maintenance Tracking', desc: 'Never miss a repair request' },
+    { icon: Wrench, title: 'Maintenance Tracking', desc: 'Never miss a repair request' },
     { icon: CreditCard, title: 'Payment Processing', desc: 'Secure rent collection' },
     { icon: BarChart3, title: 'Analytics', desc: 'Data-driven insights' }
   ];

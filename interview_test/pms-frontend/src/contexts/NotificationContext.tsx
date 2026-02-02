@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer } from 'react';
+import type { ReactNode } from 'react';
 
 interface Notification {
   id: string;
@@ -80,15 +81,15 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     const newNotification: Notification = {
       ...notification,
       id,
-      duration: notification.duration || 5000,
+      duration: notification.duration ?? 5000,
     };
 
     dispatch({ type: 'ADD_NOTIFICATION', payload: newNotification });
 
-    if (newNotification.duration > 0) {
+    if ((newNotification.duration ?? 0) > 0) {
       setTimeout(() => {
         removeNotification(id);
-      }, newNotification.duration);
+      }, newNotification.duration ?? 5000);
     }
   };
 

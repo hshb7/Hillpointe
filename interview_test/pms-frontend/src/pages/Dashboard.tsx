@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Building,
@@ -11,14 +12,78 @@ import {
   DollarSign,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, Badge, Button } from '../components/ui';
-import { sampleAnalyticsData, sampleMaintenanceRequests, samplePayments, sampleProperties } from '../data/sampleData';
+import { propertiesApi, tenantsApi, maintenanceApi, paymentsApi } from '../services/api';
+import { useTheme } from '../contexts/ThemeContext';
+import type { MaintenanceRequest, Payment, AnalyticsData } from '../types';
 import { formatCurrency, formatPercentage } from '../utils/formatters';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 
 const Dashboard: React.FC = () => {
-  const [analytics] = useState(sampleAnalyticsData);
-  const [recentMaintenance] = useState(sampleMaintenanceRequests.slice(0, 3));
-  const [recentPayments] = useState(samplePayments.slice(0, 3));
+  const navigate = useNavigate();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+  const [analytics, setAnalytics] = useState<AnalyticsData>({
+    totalProperties: 0,
+    totalTenants: 0,
+    occupancyRate: 0,
+    monthlyRevenue: 0,
+    maintenanceRequests: { total: 0, pending: 0, completed: 0 },
+    paymentStatus: { onTime: 0, late: 0, overdue: 0 },
+    propertyTypes: {},
+    revenueByMonth: [],
+    maintenanceByCategory: [],
+  });
+  const [recentMaintenance, setRecentMaintenance] = useState<MaintenanceRequest[]>([]);
+  const [recentPayments, setRecentPayments] = useState<Payment[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [propRes, tenantRes, maintRes, payRes] = await Promise.all([
+          propertiesApi.getAll(),
+          tenantsApi.getAll(),
+          maintenanceApi.getAll(),
+          paymentsApi.getAll(),
+        ]);
+
+        const properties = propRes.data;
+        const tenants = tenantRes.data;
+        const maintenance = maintRes.data;
+        const payments = payRes.data;
+
+        const occupied = properties.filter(p => p.status === 'occupied').length;
+        const typeCount: Record<string, number> = {};
+        properties.forEach(p => { typeCount[p.type] = (typeCount[p.type] || 0) + 1; });
+
+        const totalRent = tenants.reduce((sum, t) => sum + t.rentAmount, 0);
+        const pendingMaint = maintenance.filter(m => m.status === 'pending').length;
+        const completedMaint = maintenance.filter(m => m.status === 'completed').length;
+        const completedPay = payments.filter(p => p.status === 'completed').length;
+        const pendingPay = payments.filter(p => p.status === 'pending').length;
+
+        const categoryCount: Record<string, number> = {};
+        maintenance.forEach(m => { categoryCount[m.category] = (categoryCount[m.category] || 0) + 1; });
+
+        setAnalytics({
+          totalProperties: properties.length,
+          totalTenants: tenants.length,
+          occupancyRate: properties.length > 0 ? (occupied / properties.length) * 100 : 0,
+          monthlyRevenue: totalRent,
+          maintenanceRequests: { total: maintenance.length, pending: pendingMaint, completed: completedMaint },
+          paymentStatus: { onTime: completedPay, late: 0, overdue: pendingPay },
+          propertyTypes: typeCount,
+          revenueByMonth: [{ month: 'Jan', revenue: totalRent }],
+          maintenanceByCategory: Object.entries(categoryCount).map(([category, count]) => ({ category, count })),
+        });
+
+        setRecentMaintenance(maintenance.slice(0, 3));
+        setRecentPayments(payments.slice(0, 3));
+      } catch (err) {
+        console.error('Failed to fetch dashboard data:', err);
+      }
+    };
+    fetchData();
+  }, []);
 
   const dashboardStats = [
     {
@@ -72,15 +137,16 @@ const Dashboard: React.FC = () => {
     pending: 'warning',
     completed: 'success',
     failed: 'error',
+    refunded: 'info',
   } as const;
 
   return (
-    <div style={{ padding: '30px', minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
+    <div style={{ padding: '30px', minHeight: '100vh', backgroundColor: isDark ? '#0f172a' : '#f8f9fa' }}>
       <div style={{ marginBottom: '30px' }}>
-        <h1 style={{ fontSize: '32px', fontWeight: '700', color: '#1a1a1a', marginBottom: '8px' }}>
+        <h1 style={{ fontSize: '32px', fontWeight: '700', color: isDark ? '#f1f5f9' : '#1a1a1a', marginBottom: '8px' }}>
           Dashboard
         </h1>
-        <p style={{ color: '#666', fontSize: '16px' }}>
+        <p style={{ color: isDark ? '#94a3b8' : '#666', fontSize: '16px' }}>
           Welcome to your property management dashboard
         </p>
       </div>
@@ -171,7 +237,7 @@ const Dashboard: React.FC = () => {
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      label={({ name, percent = 0 }) => `${name} ${(percent * 100).toFixed(0)}%`}
                     >
                       {Object.entries(analytics.propertyTypes).map((_, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -221,7 +287,7 @@ const Dashboard: React.FC = () => {
                       </Badge>
                     </div>
                   ))}
-                  <Button variant="outline" size="sm" fullWidth className="mt-3">
+                  <Button variant="outline" size="sm" fullWidth className="mt-3" onClick={() => navigate('/maintenance')}>
                     View All Requests
                   </Button>
                 </div>
@@ -264,7 +330,7 @@ const Dashboard: React.FC = () => {
                       </Badge>
                     </div>
                   ))}
-                  <Button variant="outline" size="sm" fullWidth className="mt-3">
+                  <Button variant="outline" size="sm" fullWidth className="mt-3" onClick={() => navigate('/payments')}>
                     View All Payments
                   </Button>
                 </div>
@@ -283,16 +349,16 @@ const Dashboard: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <Button variant="primary" size="sm" fullWidth leftIcon={<Building size={16} />}>
+                  <Button variant="primary" size="sm" fullWidth iconLeft={<Building size={16} />} onClick={() => navigate('/properties')}>
                     Add New Property
                   </Button>
-                  <Button variant="outline" size="sm" fullWidth leftIcon={<Users size={16} />}>
+                  <Button variant="outline" size="sm" fullWidth iconLeft={<Users size={16} />} onClick={() => navigate('/tenants')}>
                     Add New Tenant
                   </Button>
-                  <Button variant="outline" size="sm" fullWidth leftIcon={<Calendar size={16} />}>
+                  <Button variant="outline" size="sm" fullWidth iconLeft={<Calendar size={16} />} onClick={() => navigate('/calendar')}>
                     Schedule Inspection
                   </Button>
-                  <Button variant="outline" size="sm" fullWidth leftIcon={<CreditCard size={16} />}>
+                  <Button variant="outline" size="sm" fullWidth iconLeft={<CreditCard size={16} />} onClick={() => navigate('/payments')}>
                     Generate Invoice
                   </Button>
                 </div>

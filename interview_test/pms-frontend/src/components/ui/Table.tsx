@@ -8,7 +8,7 @@ interface TableColumn {
   key: string;
   label: string;
   sortable?: boolean;
-  render?: (value: any, row: any) => React.ReactNode;
+  render?: (value: any, row: any, index: number) => React.ReactNode;
   className?: string;
 }
 
@@ -104,7 +104,7 @@ const Table: React.FC<TableProps> = ({
                       size="sm"
                       onClick={() => handleSort(column.key)}
                       className="!p-0 !text-xs !font-medium !text-gray-500 hover:!text-gray-700"
-                      rightIcon={getSortIcon(column.key)}
+                      iconRight={getSortIcon(column.key)}
                     >
                       {column.label}
                     </Button>
@@ -137,7 +137,7 @@ const Table: React.FC<TableProps> = ({
                       key={column.key}
                       className={`px-6 py-4 whitespace-nowrap text-sm text-gray-900 ${column.className || ''}`}
                     >
-                      {column.render ? column.render(row[column.key], row) : row[column.key]}
+                      {column.render ? column.render(row[column.key], row, index) : row[column.key]}
                     </td>
                   ))}
                 </motion.tr>

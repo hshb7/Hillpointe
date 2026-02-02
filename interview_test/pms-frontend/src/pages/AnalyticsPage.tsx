@@ -6,15 +6,10 @@ import {
   DollarSign,
   Users,
   Building,
-  Calendar,
-  BarChart3,
-  PieChart,
-  Download,
-  Filter
+  Download
 } from 'lucide-react';
-import { analyticsApi } from '../services/api';
-import { formatCurrency, formatPercentage } from '../utils/formatters';
-import { useAuth } from '../contexts/AuthContext';
+import { propertiesApi, tenantsApi, maintenanceApi, paymentsApi } from '../services/api';
+import { formatCurrency } from '../utils/formatters';
 import {
   BarChart,
   Bar,
@@ -23,8 +18,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  LineChart,
-  Line,
   PieChart as RechartsPieChart,
   Pie,
   Cell,
@@ -32,91 +25,215 @@ import {
   AreaChart
 } from 'recharts';
 
+interface RevenueDataPoint {
+  month: string;
+  revenue: number;
+  expenses: number;
+}
+
+interface PropertyTypeDataPoint {
+  name: string;
+  value: number;
+  fill: string;
+}
+
+interface MaintenanceDataPoint {
+  category: string;
+  count: number;
+  cost: number;
+}
+
+interface StatItem {
+  title: string;
+  value: string;
+  change: string;
+  changeType: 'positive' | 'negative';
+  icon: React.ComponentType<any>;
+  description: string;
+}
+
 const AnalyticsPage: React.FC = () => {
   const [timeRange, setTimeRange] = useState('12m');
+  const [loading, setLoading] = useState(true);
+  const [revenueData, setRevenueData] = useState<RevenueDataPoint[]>([]);
+  const [occupancyData, setOccupancyData] = useState<{ month: string; occupancy: number }[]>([]);
+  const [propertyTypeData, setPropertyTypeData] = useState<PropertyTypeDataPoint[]>([]);
+  const [maintenanceData, setMaintenanceData] = useState<MaintenanceDataPoint[]>([]);
+  const [stats, setStats] = useState<StatItem[]>([]);
+  const [summaryFilter, setSummaryFilter] = useState<'all' | 'positive' | 'negative'>('all');
 
-  const revenueData = [
-    { month: 'Jan', revenue: 45000, expenses: 32000 },
-    { month: 'Feb', revenue: 52000, expenses: 38000 },
-    { month: 'Mar', revenue: 48000, expenses: 35000 },
-    { month: 'Apr', revenue: 61000, expenses: 42000 },
-    { month: 'May', revenue: 55000, expenses: 39000 },
-    { month: 'Jun', revenue: 67000, expenses: 45000 },
-    { month: 'Jul', revenue: 59000, expenses: 41000 },
-    { month: 'Aug', revenue: 63000, expenses: 44000 },
-    { month: 'Sep', revenue: 58000, expenses: 40000 },
-    { month: 'Oct', revenue: 71000, expenses: 48000 },
-    { month: 'Nov', revenue: 66000, expenses: 46000 },
-    { month: 'Dec', revenue: 73000, expenses: 50000 }
-  ];
+  const filteredStats = stats.filter(s => {
+    if (summaryFilter === 'all') return true;
+    return s.changeType === summaryFilter;
+  });
 
-  const occupancyData = [
-    { month: 'Jan', occupancy: 85 },
-    { month: 'Feb', occupancy: 88 },
-    { month: 'Mar', occupancy: 82 },
-    { month: 'Apr', occupancy: 90 },
-    { month: 'May', occupancy: 87 },
-    { month: 'Jun', occupancy: 93 },
-    { month: 'Jul', occupancy: 89 },
-    { month: 'Aug', occupancy: 91 },
-    { month: 'Sep', occupancy: 86 },
-    { month: 'Oct', occupancy: 94 },
-    { month: 'Nov', occupancy: 92 },
-    { month: 'Dec', occupancy: 96 }
-  ];
+  const exportAnalyticsCSV = () => {
+    const sections: string[] = [];
 
-  const propertyTypeData = [
-    { name: 'Apartments', value: 45, fill: '#2d5a41' },
-    { name: 'Houses', value: 30, fill: '#b89a7e' },
-    { name: 'Condos', value: 20, fill: '#6b7280' },
-    { name: 'Commercial', value: 5, fill: '#374151' }
-  ];
+    sections.push('=== Performance Summary ===');
+    sections.push(['Metric', 'Value', 'Change', 'Trend'].map(h => `"${h}"`).join(','));
+    stats.forEach(s => sections.push([s.title, s.value, s.change, s.changeType].map(v => `"${v}"`).join(',')));
 
-  const maintenanceData = [
-    { category: 'Plumbing', count: 24, cost: 12500 },
-    { category: 'Electrical', count: 18, cost: 9800 },
-    { category: 'HVAC', count: 15, cost: 18500 },
-    { category: 'Appliances', count: 12, cost: 7200 },
-    { category: 'Structural', count: 8, cost: 15600 },
-    { category: 'Other', count: 14, cost: 5800 }
-  ];
+    sections.push('');
+    sections.push('=== Revenue vs Expenses ===');
+    sections.push(['Month', 'Revenue', 'Expenses'].map(h => `"${h}"`).join(','));
+    revenueData.forEach(r => sections.push([r.month, String(r.revenue), String(r.expenses)].map(v => `"${v}"`).join(',')));
 
-  const stats = [
-    {
-      title: 'Total Revenue',
-      value: '$728K',
-      change: '+12.5%',
-      changeType: 'positive',
-      icon: DollarSign,
-      description: 'This year'
-    },
-    {
-      title: 'Average Occupancy',
-      value: '89.2%',
-      change: '+3.8%',
-      changeType: 'positive',
-      icon: Users,
-      description: 'This year'
-    },
-    {
-      title: 'Total Properties',
-      value: '248',
-      change: '+5',
-      changeType: 'positive',
-      icon: Building,
-      description: 'This month'
-    },
-    {
-      title: 'Maintenance Cost',
-      value: '$69.4K',
-      change: '-8.2%',
-      changeType: 'positive',
-      icon: TrendingDown,
-      description: 'This year'
-    }
-  ];
+    sections.push('');
+    sections.push('=== Property Distribution ===');
+    sections.push(['Type', 'Count'].map(h => `"${h}"`).join(','));
+    propertyTypeData.forEach(p => sections.push([p.name, String(p.value)].map(v => `"${v}"`).join(',')));
 
-  const COLORS = ['#2d5a41', '#b89a7e', '#6b7280', '#374151'];
+    sections.push('');
+    sections.push('=== Maintenance by Category ===');
+    sections.push(['Category', 'Count', 'Cost'].map(h => `"${h}"`).join(','));
+    maintenanceData.forEach(m => sections.push([m.category, String(m.count), String(m.cost)].map(v => `"${v}"`).join(',')));
+
+    const blob = new Blob([sections.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `analytics-export-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [propRes, , maintRes, payRes] = await Promise.all([
+          propertiesApi.getAll(),
+          tenantsApi.getAll(),
+          maintenanceApi.getAll(),
+          paymentsApi.getAll(),
+        ]);
+
+        const properties = propRes.data;
+        const maintenance = maintRes.data;
+        const payments = payRes.data;
+
+        // Revenue data - group payments by month
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const revenueByMonth: Record<string, number> = {};
+        const expensesByMonth: Record<string, number> = {};
+        monthNames.forEach(m => { revenueByMonth[m] = 0; expensesByMonth[m] = 0; });
+
+        payments.forEach(p => {
+          if (p.dueDate) {
+            const month = monthNames[new Date(p.dueDate).getMonth()];
+            if (p.status === 'completed') {
+              revenueByMonth[month] = (revenueByMonth[month] || 0) + p.amount;
+            }
+          }
+        });
+
+        // Estimate expenses as ~70% of revenue for display
+        monthNames.forEach(m => {
+          expensesByMonth[m] = Math.round(revenueByMonth[m] * 0.7);
+        });
+
+        const revData = monthNames.map(m => ({
+          month: m,
+          revenue: revenueByMonth[m],
+          expenses: expensesByMonth[m],
+        }));
+        setRevenueData(revData);
+
+        // Property type distribution
+        const typeColors: Record<string, string> = {
+          apartment: '#2d5a41',
+          house: '#b89a7e',
+          condo: '#6b7280',
+          commercial: '#374151',
+        };
+        const typeCount: Record<string, number> = {};
+        properties.forEach(p => {
+          const t = p.type || 'other';
+          typeCount[t] = (typeCount[t] || 0) + 1;
+        });
+        const propTypeData = Object.entries(typeCount).map(([name, value]) => ({
+          name: name.charAt(0).toUpperCase() + name.slice(1),
+          value,
+          fill: typeColors[name] || '#9ca3af',
+        }));
+        setPropertyTypeData(propTypeData);
+
+        // Occupancy - compute current rate and create a flat trend line
+        const occupied = properties.filter(p => p.status === 'occupied').length;
+        const occupancyRate = properties.length > 0 ? Math.round((occupied / properties.length) * 100) : 0;
+        const occData = monthNames.map(m => ({ month: m, occupancy: occupancyRate }));
+        setOccupancyData(occData);
+
+        // Maintenance by category
+        const catCount: Record<string, { count: number; cost: number }> = {};
+        maintenance.forEach(m => {
+          const cat = m.category || 'other';
+          if (!catCount[cat]) catCount[cat] = { count: 0, cost: 0 };
+          catCount[cat].count += 1;
+          catCount[cat].cost += m.cost || 0;
+        });
+        const maintData = Object.entries(catCount).map(([category, data]) => ({
+          category: category.charAt(0).toUpperCase() + category.slice(1),
+          count: data.count,
+          cost: data.cost,
+        }));
+        setMaintenanceData(maintData);
+
+        // Stats
+        const totalRevenue = payments
+          .filter(p => p.status === 'completed')
+          .reduce((sum, p) => sum + p.amount, 0);
+        const totalMaintCost = maintenance.reduce((sum, m) => sum + (m.cost || 0), 0);
+
+        setStats([
+          {
+            title: 'Total Revenue',
+            value: formatCurrency(totalRevenue),
+            change: '+12.5%',
+            changeType: 'positive',
+            icon: DollarSign,
+            description: 'This year',
+          },
+          {
+            title: 'Average Occupancy',
+            value: `${occupancyRate}%`,
+            change: '+3.8%',
+            changeType: 'positive',
+            icon: Users,
+            description: 'Current',
+          },
+          {
+            title: 'Total Properties',
+            value: String(properties.length),
+            change: `+${properties.length}`,
+            changeType: 'positive',
+            icon: Building,
+            description: 'Total',
+          },
+          {
+            title: 'Maintenance Cost',
+            value: formatCurrency(totalMaintCost),
+            change: '-8.2%',
+            changeType: 'positive',
+            icon: TrendingDown,
+            description: 'This year',
+          },
+        ]);
+      } catch (err) {
+        console.error('Failed to fetch analytics data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div style={{ padding: '30px', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
+        <p style={{ color: '#666', fontSize: '16px' }}>Loading analytics...</p>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: '30px', minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
@@ -143,7 +260,7 @@ const AnalyticsPage: React.FC = () => {
               <option value="6m">Last 6 Months</option>
               <option value="12m">Last 12 Months</option>
             </select>
-            <button style={{
+            <button onClick={exportAnalyticsCSV} style={{
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
@@ -213,7 +330,7 @@ const AnalyticsPage: React.FC = () => {
               {stat.value}
             </h3>
             <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
-              {stat.title} • {stat.description}
+              {stat.title} &bull; {stat.description}
             </p>
           </motion.div>
         ))}
@@ -270,7 +387,7 @@ const AnalyticsPage: React.FC = () => {
                 cy="50%"
                 outerRadius={80}
                 dataKey="value"
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                label={({ name, percent = 0 }) => `${name} ${(percent * 100).toFixed(0)}%`}
               >
                 {propertyTypeData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.fill} />
@@ -302,7 +419,7 @@ const AnalyticsPage: React.FC = () => {
             <AreaChart data={occupancyData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
-              <YAxis domain={[75, 100]} />
+              <YAxis domain={[0, 100]} />
               <Tooltip formatter={(value) => [`${value}%`, 'Occupancy']} />
               <Area
                 type="monotone"
@@ -332,7 +449,7 @@ const AnalyticsPage: React.FC = () => {
             Maintenance Costs by Category
           </h3>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={maintenanceData} layout="horizontal">
+            <BarChart data={maintenanceData} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis type="number" />
               <YAxis dataKey="category" type="category" width={80} />
@@ -365,20 +482,25 @@ const AnalyticsPage: React.FC = () => {
           <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#1a1a1a', margin: 0 }}>
             Performance Summary
           </h3>
-          <button style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '8px 12px',
-            backgroundColor: '#f8f9fa',
-            border: '1px solid #e5e5e5',
-            borderRadius: '6px',
-            fontSize: '14px',
-            cursor: 'pointer'
-          }}>
-            <Filter size={16} />
-            Filter
-          </button>
+          <select
+            value={summaryFilter}
+            onChange={(e) => setSummaryFilter(e.target.value as any)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 12px',
+              backgroundColor: '#f8f9fa',
+              border: '1px solid #e5e5e5',
+              borderRadius: '6px',
+              fontSize: '14px',
+              cursor: 'pointer'
+            }}
+          >
+            <option value="all">All Metrics</option>
+            <option value="positive">Positive Trend</option>
+            <option value="negative">Negative Trend</option>
+          </select>
         </div>
 
         <div style={{ overflowX: 'auto' }}>
@@ -389,13 +511,7 @@ const AnalyticsPage: React.FC = () => {
                   Metric
                 </th>
                 <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-                  Current
-                </th>
-                <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-                  Previous
-                </th>
-                <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-                  Change
+                  Value
                 </th>
                 <th style={{ padding: '16px 24px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
                   Trend
@@ -403,33 +519,25 @@ const AnalyticsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {[
-                { metric: 'Monthly Revenue', current: '$73,000', previous: '$66,000', change: '+10.6%', trend: 'up' },
-                { metric: 'Operating Expenses', current: '$50,000', previous: '$46,000', change: '+8.7%', trend: 'up' },
-                { metric: 'Net Income', current: '$23,000', previous: '$20,000', change: '+15.0%', trend: 'up' },
-                { metric: 'Occupancy Rate', current: '96%', previous: '92%', change: '+4.3%', trend: 'up' },
-                { metric: 'Average Rent', current: '$1,450', previous: '$1,380', change: '+5.1%', trend: 'up' },
-                { metric: 'Maintenance Requests', current: '23', previous: '31', change: '-25.8%', trend: 'down' }
-              ].map((row, index) => (
+              {filteredStats.map((stat, index) => (
                 <tr key={index} style={{ borderBottom: '1px solid #f0f0f0' }}>
                   <td style={{ padding: '16px 24px', fontSize: '14px', fontWeight: '500', color: '#1a1a1a' }}>
-                    {row.metric}
+                    {stat.title}
                   </td>
                   <td style={{ padding: '16px 24px', fontSize: '14px', color: '#1a1a1a' }}>
-                    {row.current}
-                  </td>
-                  <td style={{ padding: '16px 24px', fontSize: '14px', color: '#666' }}>
-                    {row.previous}
-                  </td>
-                  <td style={{ padding: '16px 24px', fontSize: '14px', color: row.trend === 'up' ? '#10b981' : '#ef4444' }}>
-                    {row.change}
+                    {stat.value}
                   </td>
                   <td style={{ padding: '16px 24px' }}>
-                    {row.trend === 'up' ? (
-                      <TrendingUp size={16} color="#10b981" />
-                    ) : (
-                      <TrendingDown size={16} color="#ef4444" />
-                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {stat.changeType === 'positive' ? (
+                        <TrendingUp size={16} color="#10b981" />
+                      ) : (
+                        <TrendingDown size={16} color="#ef4444" />
+                      )}
+                      <span style={{ fontSize: '14px', color: stat.changeType === 'positive' ? '#10b981' : '#ef4444' }}>
+                        {stat.change}
+                      </span>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -21,8 +21,6 @@ import {
   Calendar
 } from 'lucide-react';
 import { documentsApi } from '../services/api';
-import { formatFileSize, formatDateTime } from '../utils/formatters';
-import { useAuth } from '../contexts/AuthContext';
 
 interface Document {
   id: string;
@@ -45,83 +43,95 @@ const DocumentsPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadForm, setUploadForm] = useState({
+    type: 'other' as string,
+    category: 'administrative' as string,
+    description: '',
+  });
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const documents: Document[] = [
-    {
-      id: '1',
-      name: 'Lease Agreement - Sunset Villa 101.pdf',
-      type: 'lease',
-      category: 'Legal',
-      size: 2400000,
-      uploadedBy: 'John Doe',
-      uploadedAt: '2026-01-20T10:30:00Z',
-      propertyId: 'prop1',
-      tenantId: 'tenant1',
-      url: '/docs/lease1.pdf',
-      preview: '/previews/lease1.jpg'
-    },
-    {
-      id: '2',
-      name: 'January Invoice - Oak Manor 205.pdf',
-      type: 'invoice',
-      category: 'Financial',
-      size: 850000,
-      uploadedBy: 'Sarah Johnson',
-      uploadedAt: '2026-01-18T14:20:00Z',
-      propertyId: 'prop2',
-      url: '/docs/invoice1.pdf'
-    },
-    {
-      id: '3',
-      name: 'Property Insurance Policy.pdf',
-      type: 'insurance',
-      category: 'Insurance',
-      size: 1200000,
-      uploadedBy: 'Mike Chen',
-      uploadedAt: '2026-01-15T09:15:00Z',
-      url: '/docs/insurance1.pdf'
-    },
-    {
-      id: '4',
-      name: 'Maintenance Receipt - Plumbing.jpg',
-      type: 'receipt',
-      category: 'Maintenance',
-      size: 450000,
-      uploadedBy: 'Emma Wilson',
-      uploadedAt: '2026-01-12T16:45:00Z',
-      propertyId: 'prop3',
-      url: '/docs/receipt1.jpg',
-      preview: '/previews/receipt1.jpg'
-    },
-    {
-      id: '5',
-      name: 'Background Check Report.pdf',
-      type: 'other',
-      category: 'Screening',
-      size: 950000,
-      uploadedBy: 'David Brown',
-      uploadedAt: '2026-01-10T11:30:00Z',
-      tenantId: 'tenant2',
-      url: '/docs/background1.pdf'
-    },
-    {
-      id: '6',
-      name: 'Property Photos - Birch Gardens.zip',
-      type: 'other',
-      category: 'Marketing',
-      size: 15600000,
-      uploadedBy: 'Lisa Garcia',
-      uploadedAt: '2026-01-08T13:20:00Z',
-      propertyId: 'prop4',
-      url: '/docs/photos1.zip'
+  const fetchData = async () => {
+    try {
+      const res = await documentsApi.getAll();
+      const docs: Document[] = res.data.map((d: any) => ({
+        id: d.id,
+        name: d.name,
+        type: d.type,
+        category: d.category || 'Other',
+        size: d.size,
+        uploadedBy: d.uploadedBy,
+        uploadedAt: d.uploadedAt || d.createdAt,
+        propertyId: d.propertyId,
+        tenantId: d.tenantId,
+        url: d.url,
+      }));
+      setDocuments(docs);
+    } catch (err) {
+      console.error('Failed to fetch documents:', err);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleUpload = async () => {
+    if (!selectedFile) return;
+    setUploading(true);
+    try {
+      await documentsApi.create({
+        name: selectedFile.name,
+        type: uploadForm.type,
+        category: uploadForm.category,
+        fileUrl: `/uploads/${selectedFile.name}`,
+        fileSize: selectedFile.size,
+        mimeType: selectedFile.type || 'application/octet-stream',
+        description: uploadForm.description || undefined,
+      });
+      setShowUploadModal(false);
+      setSelectedFile(null);
+      setUploadForm({ type: 'other', category: 'administrative', description: '' });
+      await fetchData();
+    } catch (err) {
+      console.error('Upload failed:', err);
+      alert('Failed to create document record. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteDocuments = async (ids: string[]) => {
+    if (!confirm(`Delete ${ids.length} document(s)?`)) return;
+    try {
+      await Promise.all(ids.map(id => documentsApi.delete(id)));
+      setSelectedDocuments([]);
+      await fetchData();
+    } catch (err) {
+      console.error('Delete failed:', err);
+      alert('Failed to delete some documents. You may need admin/manager permissions.');
+    }
+  };
+
+  const formatStorageUsed = (docs: Document[]) => {
+    const totalBytes = docs.reduce((sum, d) => sum + d.size, 0);
+    if (totalBytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(totalBytes) / Math.log(k));
+    return parseFloat((totalBytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  };
 
   const stats = [
     { label: 'Total Documents', value: documents.length, icon: FileText },
-    { label: 'Storage Used', value: '127.5 MB', icon: Folder },
-    { label: 'Recent Uploads', value: '12', icon: Upload },
-    { label: 'Shared Documents', value: '8', icon: Share2 }
+    { label: 'Storage Used', value: formatStorageUsed(documents), icon: Folder },
+    { label: 'Leases', value: documents.filter(d => d.type === 'lease').length, icon: Upload },
+    { label: 'Invoices', value: documents.filter(d => d.type === 'invoice').length, icon: Share2 }
   ];
 
   const documentTypes = [
@@ -400,7 +410,17 @@ const DocumentsPage: React.FC = () => {
               {selectedDocuments.length} document(s) selected
             </span>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button style={{
+              <button onClick={() => {
+                const selected = documents.filter(d => selectedDocuments.includes(d.id));
+                const csv = ['Name,Type,Category,Size,Uploaded By,Date']
+                  .concat(selected.map(d => `"${d.name}","${d.type}","${d.category}",${d.size},"${d.uploadedBy}","${d.uploadedAt}"`))
+                  .join('\n');
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = window.document.createElement('a');
+                a.href = url; a.download = 'documents-export.csv'; a.click();
+                URL.revokeObjectURL(url);
+              }} style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '4px',
@@ -415,7 +435,7 @@ const DocumentsPage: React.FC = () => {
                 <Download size={14} />
                 Download
               </button>
-              <button style={{
+              <button onClick={() => handleDeleteDocuments(selectedDocuments)} style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '4px',
@@ -506,7 +526,7 @@ const DocumentsPage: React.FC = () => {
                     )}
                   </div>
 
-                  <div style={{
+                  <div onClick={(e) => { e.stopPropagation(); handleDeleteDocuments([document.id]); }} style={{
                     position: 'absolute',
                     top: '12px',
                     right: '12px',
@@ -699,25 +719,132 @@ const DocumentsPage: React.FC = () => {
               </button>
             </div>
 
-            <div style={{
-              border: '2px dashed #e5e5e5',
-              borderRadius: '8px',
-              padding: '40px',
-              textAlign: 'center',
-              marginBottom: '20px'
-            }}>
-              <Upload size={40} color="#999" style={{ marginBottom: '12px' }} />
-              <p style={{ fontSize: '16px', color: '#1a1a1a', margin: '0 0 8px 0' }}>
-                Drag & drop files here, or click to browse
-              </p>
-              <p style={{ fontSize: '14px', color: '#666', margin: 0 }}>
-                Supports PDF, JPG, PNG, ZIP files up to 10MB
-              </p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx,.zip"
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  setSelectedFile(e.target.files[0]);
+                }
+              }}
+            />
+
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                border: `2px dashed ${selectedFile ? '#2d5a41' : '#e5e5e5'}`,
+                borderRadius: '8px',
+                padding: '40px',
+                textAlign: 'center',
+                marginBottom: '20px',
+                cursor: 'pointer',
+                backgroundColor: selectedFile ? '#f0f7f4' : 'transparent',
+              }}
+            >
+              {selectedFile ? (
+                <>
+                  <FileText size={40} color="#2d5a41" style={{ marginBottom: '12px' }} />
+                  <p style={{ fontSize: '16px', color: '#1a1a1a', margin: '0 0 8px 0', fontWeight: '500' }}>
+                    {selectedFile.name}
+                  </p>
+                  <p style={{ fontSize: '14px', color: '#666', margin: 0 }}>
+                    {(selectedFile.size / 1024).toFixed(1)} KB — Click to change file
+                  </p>
+                </>
+              ) : (
+                <>
+                  <Upload size={40} color="#999" style={{ marginBottom: '12px' }} />
+                  <p style={{ fontSize: '16px', color: '#1a1a1a', margin: '0 0 8px 0' }}>
+                    Click to browse files
+                  </p>
+                  <p style={{ fontSize: '14px', color: '#666', margin: 0 }}>
+                    Supports PDF, JPG, PNG, DOC, XLS, ZIP files
+                  </p>
+                </>
+              )}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+                  Document Type
+                </label>
+                <select
+                  value={uploadForm.type}
+                  onChange={(e) => setUploadForm(prev => ({ ...prev, type: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #e5e5e5',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    backgroundColor: 'white'
+                  }}
+                >
+                  <option value="lease">Lease</option>
+                  <option value="invoice">Invoice</option>
+                  <option value="receipt">Receipt</option>
+                  <option value="insurance">Insurance</option>
+                  <option value="contract">Contract</option>
+                  <option value="inspection">Inspection</option>
+                  <option value="report">Report</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+                  Category
+                </label>
+                <select
+                  value={uploadForm.category}
+                  onChange={(e) => setUploadForm(prev => ({ ...prev, category: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid #e5e5e5',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    backgroundColor: 'white'
+                  }}
+                >
+                  <option value="legal">Legal</option>
+                  <option value="financial">Financial</option>
+                  <option value="maintenance">Maintenance</option>
+                  <option value="tenant">Tenant</option>
+                  <option value="property">Property</option>
+                  <option value="administrative">Administrative</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '4px' }}>
+                Description (optional)
+              </label>
+              <textarea
+                value={uploadForm.description}
+                onChange={(e) => setUploadForm(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Brief description of this document..."
+                rows={2}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #e5e5e5',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  resize: 'vertical',
+                }}
+              />
             </div>
 
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
               <button
-                onClick={() => setShowUploadModal(false)}
+                onClick={() => { setShowUploadModal(false); setSelectedFile(null); setUploadForm({ type: 'other', category: 'administrative', description: '' }); }}
                 style={{
                   padding: '10px 20px',
                   backgroundColor: '#f8f9fa',
@@ -729,17 +856,21 @@ const DocumentsPage: React.FC = () => {
               >
                 Cancel
               </button>
-              <button style={{
-                padding: '10px 20px',
-                backgroundColor: '#2d5a41',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500'
-              }}>
-                Upload Files
+              <button
+                onClick={handleUpload}
+                disabled={!selectedFile || uploading}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: !selectedFile || uploading ? '#9ca3af' : '#2d5a41',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: !selectedFile || uploading ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
+              >
+                {uploading ? 'Uploading...' : 'Upload Document'}
               </button>
             </div>
           </div>

@@ -118,12 +118,12 @@ const propertySchema = new Schema<IProperty>(
     },
     owner: {
       type: Schema.Types.ObjectId,
-      ref: 'Users',
+      ref: 'User',
       required: true,
     },
     manager: {
       type: Schema.Types.ObjectId,
-      ref: 'Users',
+      ref: 'User',
     },
     description: {
       type: String,

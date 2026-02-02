@@ -1,13 +1,66 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Wrench, Plus, AlertTriangle, Clock, CheckCircle, XCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Wrench, Plus, AlertTriangle, Clock, CheckCircle, XCircle, X } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge, Table } from '../components/ui';
-import type { MaintenanceRequest } from '../types';
-import { sampleMaintenanceRequests, sampleProperties } from '../data/sampleData';
-import { formatCurrency, formatDateTime } from '../utils/formatters';
+import type { MaintenanceRequest, Property } from '../types';
+import { maintenanceApi, propertiesApi } from '../services/api';
+import { formatCurrency, formatDateTime, formatDate } from '../utils/formatters';
 
 const Maintenance: React.FC = () => {
-  const [requests] = useState<MaintenanceRequest[]>(sampleMaintenanceRequests);
+  const [requests, setRequests] = useState<MaintenanceRequest[]>([]);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<MaintenanceRequest | null>(null);
+  const [newRequest, setNewRequest] = useState({
+    title: '',
+    description: '',
+    propertyId: '',
+    tenantId: '',
+    priority: 'medium' as 'low' | 'medium' | 'high' | 'urgent',
+    category: 'other' as 'plumbing' | 'electrical' | 'hvac' | 'appliance' | 'structural' | 'other',
+  });
+  const fetchData = async () => {
+    try {
+      const [maintRes, propRes] = await Promise.all([
+        maintenanceApi.getAll(),
+        propertiesApi.getAll(),
+      ]);
+      setRequests(maintRes.data);
+      setProperties(propRes.data);
+    } catch (err) {
+      console.error('Failed to fetch maintenance data:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleCreateRequest = async () => {
+    if (!newRequest.title || !newRequest.propertyId || !newRequest.description) return;
+    setCreating(true);
+    try {
+      await maintenanceApi.create({
+        title: newRequest.title,
+        description: newRequest.description,
+        propertyId: newRequest.propertyId,
+        tenantId: newRequest.tenantId || undefined,
+        priority: newRequest.priority,
+        category: newRequest.category,
+        status: 'pending',
+        images: [],
+      });
+      setShowCreateModal(false);
+      setNewRequest({ title: '', description: '', propertyId: '', tenantId: '', priority: 'medium', category: 'other' });
+      await fetchData();
+    } catch (err) {
+      console.error('Failed to create maintenance request:', err);
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -31,7 +84,7 @@ const Maintenance: React.FC = () => {
   };
 
   const getPropertyName = (propertyId: string) => {
-    const property = sampleProperties.find(p => p.id === propertyId);
+    const property = properties.find(p => p.id === propertyId);
     return property?.name || 'Unknown Property';
   };
 
@@ -103,22 +156,13 @@ const Maintenance: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '30px', minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
-      <div style={{ marginBottom: '30px' }}>
-        <h1 style={{ fontSize: '32px', fontWeight: '700', color: '#1a1a1a', marginBottom: '8px' }}>
-          Maintenance Requests
-        </h1>
-        <p style={{ color: '#666', fontSize: '16px' }}>
-          Track and manage maintenance activities
-        </p>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className="p-6 space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Maintenance Requests</h1>
             <p className="text-gray-600">Track and manage maintenance activities</p>
           </div>
-          <Button leftIcon={<Plus size={20} />}>
+          <Button iconLeft={<Plus size={20} />} onClick={() => setShowCreateModal(true)}>
             Create Request
           </Button>
         </div>
@@ -224,7 +268,7 @@ const Maintenance: React.FC = () => {
                           <Badge variant="error" size="sm">
                             {request.priority}
                           </Badge>
-                          <Button size="sm" variant="outline">
+                          <Button size="sm" variant="outline" onClick={() => { setSelectedRequest(request); setShowDetailModal(true); }}>
                             View
                           </Button>
                         </div>
@@ -256,7 +300,206 @@ const Maintenance: React.FC = () => {
             </CardContent>
           </Card>
         </motion.div>
-      </div>
+
+        <AnimatePresence>
+          {showCreateModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              style={{
+                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex',
+                alignItems: 'center', justifyContent: 'center', zIndex: 1000
+              }}
+              onClick={() => setShowCreateModal(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  backgroundColor: 'white', borderRadius: '12px', padding: '24px',
+                  width: '90%', maxWidth: '550px', maxHeight: '80vh', overflowY: 'auto'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#1f2937' }}>
+                    Create Maintenance Request
+                  </h3>
+                  <button onClick={() => setShowCreateModal(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#6b7280' }}>
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>Title *</label>
+                    <input
+                      type="text"
+                      value={newRequest.title}
+                      onChange={(e) => setNewRequest(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="Brief description of the issue"
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', outline: 'none' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>Property *</label>
+                    <select
+                      value={newRequest.propertyId}
+                      onChange={(e) => setNewRequest(prev => ({ ...prev, propertyId: e.target.value }))}
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', outline: 'none', backgroundColor: 'white' }}
+                    >
+                      <option value="">Select a property</option>
+                      {properties.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>Priority</label>
+                      <select
+                        value={newRequest.priority}
+                        onChange={(e) => setNewRequest(prev => ({ ...prev, priority: e.target.value as any }))}
+                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', outline: 'none', backgroundColor: 'white' }}
+                      >
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>Category</label>
+                      <select
+                        value={newRequest.category}
+                        onChange={(e) => setNewRequest(prev => ({ ...prev, category: e.target.value as any }))}
+                        style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', outline: 'none', backgroundColor: 'white' }}
+                      >
+                        <option value="plumbing">Plumbing</option>
+                        <option value="electrical">Electrical</option>
+                        <option value="hvac">HVAC</option>
+                        <option value="appliance">Appliance</option>
+                        <option value="structural">Structural</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>Description *</label>
+                    <textarea
+                      value={newRequest.description}
+                      onChange={(e) => setNewRequest(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Detailed description of the maintenance issue..."
+                      rows={4}
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', outline: 'none', resize: 'vertical' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '8px' }}>
+                    <Button variant="outline" onClick={() => setShowCreateModal(false)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="primary"
+                      onClick={handleCreateRequest}
+                      disabled={creating || !newRequest.title || !newRequest.propertyId || !newRequest.description}
+                    >
+                      {creating ? 'Creating...' : 'Create Request'}
+                    </Button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showDetailModal && selectedRequest && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              style={{
+                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex',
+                alignItems: 'center', justifyContent: 'center', zIndex: 1000
+              }}
+              onClick={() => { setShowDetailModal(false); setSelectedRequest(null); }}
+            >
+              <motion.div
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  backgroundColor: 'white', borderRadius: '12px', padding: '24px',
+                  width: '90%', maxWidth: '500px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#1f2937' }}>
+                    Maintenance Request Details
+                  </h3>
+                  <button onClick={() => { setShowDetailModal(false); setSelectedRequest(null); }} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#6b7280' }}>
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div>
+                    <h4 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: '600', color: '#1f2937' }}>{selectedRequest.title}</h4>
+                    <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>{selectedRequest.description}</p>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+                    <div>
+                      <span style={{ fontSize: '12px', color: '#6b7280' }}>Property</span>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{getPropertyName(selectedRequest.propertyId)}</p>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '12px', color: '#6b7280' }}>Category</span>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '14px', fontWeight: '500', color: '#1f2937', textTransform: 'capitalize' }}>{selectedRequest.category}</p>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '12px', color: '#6b7280' }}>Priority</span>
+                      <div style={{ marginTop: '4px' }}>
+                        <Badge variant={getPriorityColor(selectedRequest.priority)} className="capitalize">{selectedRequest.priority}</Badge>
+                      </div>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '12px', color: '#6b7280' }}>Status</span>
+                      <div style={{ marginTop: '4px' }}>
+                        <Badge variant={getStatusColor(selectedRequest.status)} className="capitalize">{selectedRequest.status.replace('_', ' ')}</Badge>
+                      </div>
+                    </div>
+                    {selectedRequest.cost && (
+                      <div>
+                        <span style={{ fontSize: '12px', color: '#6b7280' }}>Cost</span>
+                        <p style={{ margin: '2px 0 0 0', fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{formatCurrency(selectedRequest.cost)}</p>
+                      </div>
+                    )}
+                    <div>
+                      <span style={{ fontSize: '12px', color: '#6b7280' }}>Created</span>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '14px', fontWeight: '500', color: '#1f2937' }}>{formatDate(selectedRequest.createdAt)}</p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '8px' }}>
+                    <Button variant="outline" onClick={() => { setShowDetailModal(false); setSelectedRequest(null); }}>
+                      Close
+                    </Button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
     </div>
   );
 };
