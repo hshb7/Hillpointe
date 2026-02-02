@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Search, MessageSquare, Settings, User, Menu, X, Wrench, DollarSign, Calendar, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Bell, Search, MessageSquare, Menu, Wrench, DollarSign, Calendar, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
