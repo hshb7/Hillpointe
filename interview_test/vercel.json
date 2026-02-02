@@ -1,6 +1,6 @@
 {
-  "installCommand": "npm install --prefix pms-backend && npm install --prefix pms-frontend",
-  "buildCommand": "npm run build --prefix pms-frontend",
+  "installCommand": "cd pms-backend && npm install && cd ../pms-frontend && npm install",
+  "buildCommand": "cd pms-frontend && npm run build",
   "outputDirectory": "pms-frontend/dist",
   "rewrites": [
     { "source": "/api/v1/:path*", "destination": "/api" },
