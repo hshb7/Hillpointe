@@ -1,3 +1,3 @@
-import app from '../pms-backend/src/index';
+import app from '../pms-backend/src/app';
 
 export default app;
