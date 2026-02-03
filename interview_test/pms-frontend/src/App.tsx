@@ -22,9 +22,11 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { useTheme } from './contexts/ThemeContext';
+import { useAuth } from './contexts/AuthContext';
 
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import Dashboard from './pages/Dashboard';
 import Properties from './pages/Properties';
 import Tenants from './pages/Tenants';
@@ -45,6 +47,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const notifRef = useRef<HTMLDivElement>(null);
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
+  const { logout } = useAuth();
 
   const [notifications, setNotifications] = useState([
     { id: '1', type: 'maintenance', title: 'New Maintenance Request', message: 'Leaking faucet reported at Hillpointe Manor #12A', time: '5 min ago', read: false },
@@ -165,7 +168,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           borderTop: `1px solid ${isDark ? '#334155' : '#e5e5e5'}`,
         }}>
           <button
-            onClick={() => navigate('/')}
+            onClick={() => { logout(); navigate('/'); }}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -477,6 +480,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
         <Route path="/dashboard" element={
           <MainLayout>

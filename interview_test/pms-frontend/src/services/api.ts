@@ -250,8 +250,8 @@ export const authApi = {
     return response.data;
   },
 
-  register: async (userData: Partial<User> & { password: string }): Promise<ApiResponse<User>> => {
-    const response: AxiosResponse<ApiResponse<User>> = await api.post('/auth/signup', userData);
+  register: async (userData: Record<string, any>): Promise<any> => {
+    const response = await api.post('/auth/signup', userData);
     return response.data;
   },
 

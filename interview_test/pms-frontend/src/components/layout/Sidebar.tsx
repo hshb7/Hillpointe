@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import { motion } from 'framer-motion';
 import {
   Home,
@@ -41,8 +42,9 @@ const Sidebar: React.FC = () => {
     { label: 'Settings', path: '/settings', icon: <Settings size={20} /> },
   ];
 
+  const { logout } = useAuth();
   const handleLogout = () => {
-    localStorage.removeItem('auth_token');
+    logout();
     navigate('/');
   };
 

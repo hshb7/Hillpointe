@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { motion } from 'framer-motion';
 import {
   Home,
@@ -42,8 +43,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { path: '/settings', icon: Settings, label: 'Settings' },
   ];
 
+  const { logout } = useAuth();
   const handleLogout = () => {
-    localStorage.removeItem('auth_token');
+    logout();
     navigate('/');
   };
 

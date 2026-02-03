@@ -59,7 +59,7 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
-  register: (userData: Partial<User> & { password: string }) => Promise<void>;
+  register: (userData: Record<string, any>) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
 }
@@ -125,21 +125,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const register = async (userData: Partial<User> & { password: string }): Promise<void> => {
+  const register = async (userData: Record<string, any>): Promise<void> => {
     try {
       dispatch({ type: 'AUTH_START' });
-      const response = await authApi.register(userData);
+      const response: any = await authApi.register(userData);
 
-      if (response.success) {
-        await login(userData.emailAddress!, userData.password);
+      if (response.ok && response.accessToken) {
+        localStorage.setItem('token', response.accessToken);
+        dispatch({ type: 'AUTH_SUCCESS', payload: response.account });
       } else {
-        dispatch({ type: 'AUTH_FAILURE', payload: response.message || 'Registration failed' });
+        dispatch({ type: 'AUTH_FAILURE', payload: response.msg || 'Registration failed' });
       }
     } catch (error: any) {
-      dispatch({
-        type: 'AUTH_FAILURE',
-        payload: error.response?.data?.message || 'Registration failed'
-      });
+      const errData = error.response?.data;
+      const msg = errData?.validationErrors?.[0]?.msg || errData?.err || errData?.message || 'Registration failed';
+      dispatch({ type: 'AUTH_FAILURE', payload: msg });
     }
   };
 
