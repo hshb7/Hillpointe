@@ -47,7 +47,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const notifRef = useRef<HTMLDivElement>(null);
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
 
   const [notifications, setNotifications] = useState([
     { id: '1', type: 'maintenance', title: 'New Maintenance Request', message: 'Leaking faucet reported at Hillpointe Manor #12A', time: '5 min ago', read: false },
@@ -448,14 +448,14 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 color: 'white',
                 fontWeight: '600',
               }}>
-                JD
+                {user ? `${(user as any).firstName?.[0] || ''}${(user as any).lastName?.[0] || ''}` : '?'}
               </div>
               <div>
                 <div style={{ fontSize: '14px', fontWeight: '600', color: isDark ? '#f1f5f9' : '#333' }}>
-                  John Doe
+                  {user ? `${(user as any).firstName || ''} ${(user as any).lastName || ''}`.trim() || user.fullName || 'User' : 'Guest'}
                 </div>
-                <div style={{ fontSize: '12px', color: isDark ? '#64748b' : '#888' }}>
-                  Administrator
+                <div style={{ fontSize: '12px', color: isDark ? '#64748b' : '#888', textTransform: 'capitalize' }}>
+                  {(user as any)?.role || user?.userRole || 'Unknown'}
                 </div>
               </div>
             </div>
