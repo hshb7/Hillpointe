@@ -42,12 +42,26 @@ import SettingsPage from './pages/SettingsPage';
 const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
   const { logout, user } = useAuth();
+
+  // Check if we're on desktop (lg breakpoint = 1024px)
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const desktop = window.innerWidth >= 1024;
+      setIsDesktop(desktop);
+      if (desktop) setSidebarOpen(true);
+    };
+    handleResize(); // Set initial state
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const [notifications, setNotifications] = useState([
     { id: '1', type: 'maintenance', title: 'New Maintenance Request', message: 'Leaking faucet reported at Hillpointe Manor #12A', time: '5 min ago', read: false },
@@ -91,11 +105,28 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     { path: '/settings', icon: Settings, label: 'Settings' },
   ];
 
+  const showSidebar = isDesktop || sidebarOpen;
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex' }}>
+      {/* Mobile overlay */}
+      {!isDesktop && sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 15,
+          }}
+        />
+      )}
+
+      {/* Sidebar */}
       <div style={{
-        width: sidebarOpen ? '280px' : '0',
-        transition: 'width 0.3s ease',
+        width: '280px',
+        transform: showSidebar ? 'translateX(0)' : 'translateX(-100%)',
+        transition: 'transform 0.3s ease',
         backgroundColor: isDark ? '#1e293b' : '#ffffff',
         borderRight: `1px solid ${isDark ? '#334155' : '#e5e5e5'}`,
         display: 'flex',
@@ -104,7 +135,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         height: '100vh',
         left: 0,
         top: 0,
-        zIndex: 10,
+        zIndex: 20,
         overflow: 'hidden'
       }}>
         <div style={{
@@ -131,7 +162,10 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             return (
               <div
                 key={item.path}
-                onClick={() => navigate(item.path)}
+                onClick={() => {
+                  navigate(item.path);
+                  if (!isDesktop) setSidebarOpen(false);
+                }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -192,8 +226,9 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </div>
       </div>
 
+      {/* Main content */}
       <div style={{
-        marginLeft: sidebarOpen ? '280px' : '0',
+        marginLeft: isDesktop ? '280px' : '0',
         flex: 1,
         transition: 'margin-left 0.3s ease'
       }}>
@@ -204,9 +239,9 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0 30px',
+          padding: '0 16px',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               style={{
@@ -215,14 +250,18 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 border: 'none',
                 cursor: 'pointer',
                 color: isDark ? '#94a3b8' : '#666',
+                flexShrink: 0,
               }}
             >
-              {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+              {sidebarOpen && !isDesktop ? <X size={24} /> : <Menu size={24} />}
             </button>
 
+            {/* Search - hidden on mobile, visible on desktop */}
             <div style={{
               position: 'relative',
-              width: '400px',
+              flex: 1,
+              maxWidth: '400px',
+              display: isDesktop ? 'block' : 'none',
             }}>
               <Search
                 size={20}
@@ -447,17 +486,22 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 justifyContent: 'center',
                 color: 'white',
                 fontWeight: '600',
+                fontSize: '14px',
+                flexShrink: 0,
               }}>
                 {user ? `${(user as any).firstName?.[0] || ''}${(user as any).lastName?.[0] || ''}` : '?'}
               </div>
-              <div>
-                <div style={{ fontSize: '14px', fontWeight: '600', color: isDark ? '#f1f5f9' : '#333' }}>
-                  {user ? `${(user as any).firstName || ''} ${(user as any).lastName || ''}`.trim() || user.fullName || 'User' : 'Guest'}
+              {/* User info - hidden on mobile */}
+              {isDesktop && (
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: isDark ? '#f1f5f9' : '#333' }}>
+                    {user ? `${(user as any).firstName || ''} ${(user as any).lastName || ''}`.trim() || user.fullName || 'User' : 'Guest'}
+                  </div>
+                  <div style={{ fontSize: '12px', color: isDark ? '#64748b' : '#888', textTransform: 'capitalize' }}>
+                    {(user as any)?.role || user?.userRole || 'Unknown'}
+                  </div>
                 </div>
-                <div style={{ fontSize: '12px', color: isDark ? '#64748b' : '#888', textTransform: 'capitalize' }}>
-                  {(user as any)?.role || user?.userRole || 'Unknown'}
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { motion } from 'framer-motion';
 import {
   Home,
   Building,
@@ -51,6 +50,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-neutral-50">
+      {/* Mobile hamburger button */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
         className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-lg"
@@ -58,11 +58,19 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
       </button>
 
-      <motion.aside
-        initial={{ x: -300 }}
-        animate={{ x: sidebarOpen ? 0 : -300 }}
-        className={`fixed left-0 top-0 h-full w-64 bg-white border-r border-neutral-200 z-40 lg:translate-x-0 lg:static`}
-        style={{ transform: sidebarOpen ? 'translateX(0)' : '' }}
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`fixed left-0 top-0 h-full w-64 bg-white border-r border-neutral-200 z-40 transform transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          lg:translate-x-0 lg:static lg:transform-none`}
       >
         <div className="p-6">
           <h1 className="text-2xl font-bold" style={{ color: '#2d5a41' }}>
@@ -70,7 +78,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </h1>
         </div>
 
-        <nav className="px-4">
+        <nav className="px-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 180px)' }}>
           {menuItems.map((item) => (
             <button
               key={item.path}
@@ -93,7 +101,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           ))}
         </nav>
 
-        <div className="absolute bottom-0 w-full p-4 border-t border-neutral-200">
+        <div className="absolute bottom-0 w-full p-4 border-t border-neutral-200 bg-white">
           <button
             onClick={handleLogout}
             className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-red-50 text-red-600 transition-all"
@@ -102,9 +110,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <span className="font-medium">Logout</span>
           </button>
         </div>
-      </motion.aside>
+      </aside>
 
-      <main className="lg:ml-64 min-h-screen">
+      {/* Main content */}
+      <main className="lg:ml-64 min-h-screen pt-16 lg:pt-0">
         {children}
       </main>
     </div>
